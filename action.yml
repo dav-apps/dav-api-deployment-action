@@ -1,0 +1,5 @@
+name: "dav API Deployment Action"
+description: "Deploys a dav api project to the database of the dav backend"
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
