@@ -1,4 +1,5 @@
 const core = require('@actions/core');
+const github = require('@actions/github');
 const deploy = require('./deploy');
 
 async function run(){
@@ -8,6 +9,8 @@ async function run(){
 		const auth = core.getInput('auth', {required: true});
 
 		deploy.startDeployment('./', {
+			githubUser: github.context.repo.owner,
+			githubRepo: github.context.repo.repo,
 			baseUrl,
 			apiId,
 			auth

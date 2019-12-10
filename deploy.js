@@ -1,9 +1,22 @@
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
+var clone = require('git-clone');
 
-async function startDeployment(directory, options){
-	var requestedDir = path.resolve(__dirname, directory);
+async function startDeployment(options){
+	// Clone the repository
+	var directoryName = "repository";
+	var clonePromise = new Promise((resolve) => {
+		clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
+			resolve(error);
+		});
+	});
+
+	let error = await clonePromise;
+	if(error) throw error;
+
+	var requestedDir = path.resolve(__dirname, directoryName);
+	console.log(requestedDir)
 
 	var dirs = fs.readdirSync(requestedDir);
 
@@ -11,6 +24,9 @@ async function startDeployment(directory, options){
 		if(dir[0] == '.') continue;
 		await scanPath(path.resolve(requestedDir, dir), options);
 	}
+
+	// Delete the cloned repository
+	fs.rmdirSync(requestedDir, {recursive: true});
 }
 
 async function scanPath(parent, options) {
