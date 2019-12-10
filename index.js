@@ -8,7 +8,8 @@ async function run(){
 		const apiId = core.getInput('api-id', {required: true});
 		const auth = core.getInput('auth', {required: true});
 
-		deploy.startDeployment('./', {
+		deploy.startDeployment({
+			directory: process.env.GITHUB_WORKSPACE,
 			githubUser: github.context.repo.owner,
 			githubRepo: github.context.repo.repo,
 			baseUrl,

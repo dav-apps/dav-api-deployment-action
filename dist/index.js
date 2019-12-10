@@ -1331,7 +1331,8 @@ async function run(){
 		const apiId = core.getInput('api-id', {required: true});
 		const auth = core.getInput('auth', {required: true});
 
-		deploy.startDeployment('./', {
+		deploy.startDeployment({
+			directory: process.env.GITHUB_WORKSPACE,
 			githubUser: github.context.repo.owner,
 			githubRepo: github.context.repo.repo,
 			baseUrl,
@@ -5699,8 +5700,7 @@ async function startDeployment(options){
 	let error = await clonePromise;
 	if(error) throw error;
 
-	var requestedDir = path.resolve(__dirname, directoryName);
-	console.log(requestedDir)
+	var requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
 
 	var dirs = fs.readdirSync(requestedDir);
 

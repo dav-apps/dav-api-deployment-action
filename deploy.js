@@ -15,8 +15,7 @@ async function startDeployment(options){
 	let error = await clonePromise;
 	if(error) throw error;
 
-	var requestedDir = path.resolve(__dirname, directoryName);
-	console.log(requestedDir)
+	var requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
 
 	var dirs = fs.readdirSync(requestedDir);
 
