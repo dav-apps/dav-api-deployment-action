@@ -1,13 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-require('dotenv').config();
-
-startDeployment(process.argv[2], {
-	baseUrl: process.env.API_BASE_URL,
-	apiId: process.env.API_ID,
-	auth: process.env.AUTH
-});
 
 async function startDeployment(directory, options){
 	var requestedDir = path.resolve(__dirname, directory);
