@@ -6,16 +6,24 @@ var clone = require('git-clone');
 async function startDeployment(options){
 	// Clone the repository
 	var directoryName = "repository";
-	var clonePromise = new Promise((resolve) => {
-		clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
-			resolve(error);
+	var requestedDir;
+	var deleteRepo = false;
+
+	if(options.githubUser && options.githubRepo){
+		var clonePromise = new Promise((resolve) => {
+			clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
+				resolve(error);
+			});
 		});
-	});
 
-	let error = await clonePromise;
-	if(error) throw error;
+		let error = await clonePromise;
+		if(error) throw error;
 
-	var requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
+		requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
+		deleteRepo = true;
+	}else{
+		requestedDir = path.resolve(__dirname, options.project);
+	}
 
 	var dirs = fs.readdirSync(requestedDir);
 
@@ -24,8 +32,10 @@ async function startDeployment(options){
 		await scanPath(path.resolve(requestedDir, dir), options);
 	}
 
-	// Delete the cloned repository
-	fs.rmdirSync(requestedDir, {recursive: true});
+	if(deleteRepo){
+		// Delete the cloned repository
+		fs.rmdirSync(requestedDir, {recursive: true});
+	}
 }
 
 async function scanPath(parent, options) {
