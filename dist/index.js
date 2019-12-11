@@ -5691,16 +5691,24 @@ var clone = __webpack_require__(723);
 async function startDeployment(options){
 	// Clone the repository
 	var directoryName = "repository";
-	var clonePromise = new Promise((resolve) => {
-		clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
-			resolve(error);
+	var requestedDir;
+	var deleteRepo = false;
+
+	if(options.githubUser && options.githubRepo){
+		var clonePromise = new Promise((resolve) => {
+			clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
+				resolve(error);
+			});
 		});
-	});
 
-	let error = await clonePromise;
-	if(error) throw error;
+		let error = await clonePromise;
+		if(error) throw error;
 
-	var requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
+		requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
+		deleteRepo = true;
+	}else{
+		requestedDir = path.resolve(__dirname, options.project);
+	}
 
 	var dirs = fs.readdirSync(requestedDir);
 
@@ -5709,8 +5717,10 @@ async function startDeployment(options){
 		await scanPath(path.resolve(requestedDir, dir), options);
 	}
 
-	// Delete the cloned repository
-	fs.rmdirSync(requestedDir, {recursive: true});
+	if(deleteRepo){
+		// Delete the cloned repository
+		fs.rmdirSync(requestedDir, {recursive: true});
+	}
 }
 
 async function scanPath(parent, options) {
@@ -5738,9 +5748,12 @@ async function scanPath(parent, options) {
 
 		// Read the json and the dx file
 		var json = JSON.parse(fs.readFileSync(path.resolve(parent, jsonFile)));
-		var commands = fs.readFileSync(path.resolve(parent, dxFile), {encoding: 'utf8'});
+
+		if(dxFile){
+			var commands = fs.readFileSync(path.resolve(parent, dxFile), {encoding: 'utf8'});
+		}
 		
-		if(json.type == "endpoint"){
+		if(json.type == "endpoint" && dxFile){
 			// Create or update the endpoint on the server
 			try{
 				await axios.default({
@@ -5763,7 +5776,7 @@ async function scanPath(parent, options) {
 					console.log(error);
 				}
 			}
-		}else if(json.type == "function"){
+		}else if(json.type == "function" && dxFile){
 			// Create or update the function on the server
 			try{
 				await axios.default({
@@ -5777,6 +5790,27 @@ async function scanPath(parent, options) {
 						name: json.name,
 						params: json.params.join(','),
 						commands
+					}
+				});
+			}catch(error){
+				if(error.response){
+					console.log(error.response.data.errors);
+				}else{
+					console.log(error);
+				}
+			}
+		}else if(json.type == "errors"){
+			// Create or update the error on the server
+			try{
+				await axios.default({
+					url: `${options.baseUrl}/api/${options.apiId}/errors`,
+					method: 'put',
+					headers: {
+						Authorization: options.auth,
+						'Content-Type': 'application/json'
+					},
+					data: {
+						errors: json.errors
 					}
 				});
 			}catch(error){

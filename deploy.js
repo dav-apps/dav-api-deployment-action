@@ -63,9 +63,12 @@ async function scanPath(parent, options) {
 
 		// Read the json and the dx file
 		var json = JSON.parse(fs.readFileSync(path.resolve(parent, jsonFile)));
-		var commands = fs.readFileSync(path.resolve(parent, dxFile), {encoding: 'utf8'});
+
+		if(dxFile){
+			var commands = fs.readFileSync(path.resolve(parent, dxFile), {encoding: 'utf8'});
+		}
 		
-		if(json.type == "endpoint"){
+		if(json.type == "endpoint" && dxFile){
 			// Create or update the endpoint on the server
 			try{
 				await axios.default({
@@ -88,7 +91,7 @@ async function scanPath(parent, options) {
 					console.log(error);
 				}
 			}
-		}else if(json.type == "function"){
+		}else if(json.type == "function" && dxFile){
 			// Create or update the function on the server
 			try{
 				await axios.default({
@@ -102,6 +105,27 @@ async function scanPath(parent, options) {
 						name: json.name,
 						params: json.params.join(','),
 						commands
+					}
+				});
+			}catch(error){
+				if(error.response){
+					console.log(error.response.data.errors);
+				}else{
+					console.log(error);
+				}
+			}
+		}else if(json.type == "errors"){
+			// Create or update the error on the server
+			try{
+				await axios.default({
+					url: `${options.baseUrl}/api/${options.apiId}/errors`,
+					method: 'put',
+					headers: {
+						Authorization: options.auth,
+						'Content-Type': 'application/json'
+					},
+					data: {
+						errors: json.errors
 					}
 				});
 			}catch(error){
