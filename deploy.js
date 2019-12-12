@@ -54,21 +54,16 @@ async function scanPath(parent, options) {
 		}
 	}
 
-	// Find a file with json
-	jsonFile = files.find((filename) => filename.split('.').pop() == "json");
+	for(let file of files){
+		if(file.split('.').pop() != "json") continue;
 
-	if(jsonFile){
-		// Get the dx file
-		dxFile = files.find((filename) => filename.split('.').pop() == "dx");
+		// Read the content of the json file
+		var json = JSON.parse(fs.readFileSync(path.resolve(parent, file)));
 
-		// Read the json and the dx file
-		var json = JSON.parse(fs.readFileSync(path.resolve(parent, jsonFile)));
+		if(json.type == "endpoint"){
+			if(!json.path || !json.method || !json.source) continue;
+			let commands = fs.readFileSync(path.resolve(parent, json.source), {encoding: 'utf8'});
 
-		if(dxFile){
-			var commands = fs.readFileSync(path.resolve(parent, dxFile), {encoding: 'utf8'});
-		}
-		
-		if(json.type == "endpoint" && dxFile){
 			// Create or update the endpoint on the server
 			try{
 				await axios.default({
@@ -91,7 +86,10 @@ async function scanPath(parent, options) {
 					console.log(error);
 				}
 			}
-		}else if(json.type == "function" && dxFile){
+		}else if(json.type == "function"){
+			if(!json.name || !json.params || !json.source) continue;
+			let commands = fs.readFileSync(path.resolve(parent, json.source), {encoding: 'utf8'});
+
 			// Create or update the function on the server
 			try{
 				await axios.default({
@@ -114,8 +112,46 @@ async function scanPath(parent, options) {
 					console.log(error);
 				}
 			}
+		}else if(json.type == "functions"){
+			// Create or update the functions on the server
+			var functions = json.functions;
+
+			if(functions){
+				for(let func of functions){
+					let name = func.name;
+					let params = func.params;
+					let source = func.source;
+
+					// Find the source file
+					let commands = fs.readFileSync(path.resolve(parent, source), {encoding: 'utf8'});
+
+					if(commands){
+						try{
+							await axios.default({
+								url: `${options.baseUrl}/api/${options.apiId}/function`,
+								method: 'put',
+								headers: {
+									Authorization: options.auth,
+									'Content-Type': 'application/json'
+								},
+								data: {
+									name,
+									params: params.join(','),
+									commands
+								}
+							});
+						}catch(error){
+							if(error.response){
+								console.log(error.response.data.errors);
+							}else{
+								console.log(error);
+							}
+						}
+					}
+				}
+			}
 		}else if(json.type == "errors"){
-			// Create or update the error on the server
+			// Create or update the errors on the server
 			try{
 				await axios.default({
 					url: `${options.baseUrl}/api/${options.apiId}/errors`,
