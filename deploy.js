@@ -3,11 +3,14 @@ const fs = require('fs');
 const axios = require('axios');
 var clone = require('git-clone');
 
+var production = false;
+
 async function startDeployment(options){
 	// Clone the repository
 	var directoryName = "repository";
 	var requestedDir;
 	var deleteRepo = false;
+	production = options.production == true;
 
 	if(options.githubUser && options.githubRepo){
 		var clonePromise = new Promise((resolve) => {
@@ -163,6 +166,25 @@ async function scanPath(parent, options) {
 					data: {
 						errors: json.errors
 					}
+				});
+			}catch(error){
+				if(error.response){
+					console.log(error.response.data.errors);
+				}else{
+					console.log(error);
+				}
+			}
+		}else if(json.type == "env"){
+			// Create or update the env vars on the server
+			try{
+				await axios.default({
+					url: `${options.baseUrl}/api/${options.apiId}/env_vars`,
+					method: 'put',
+					headers: {
+						Authorization: options.auth,
+						'Content-Type': 'application/json'
+					},
+					data: production ? json.production : json.development
 				});
 			}catch(error){
 				if(error.response){

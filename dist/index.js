@@ -1332,6 +1332,7 @@ async function run(){
 		const auth = core.getInput('auth', {required: true});
 
 		deploy.startDeployment({
+			production: true,
 			directory: process.env.GITHUB_WORKSPACE,
 			githubUser: github.context.repo.owner,
 			githubRepo: github.context.repo.repo,
@@ -5688,11 +5689,14 @@ const fs = __webpack_require__(747);
 const axios = __webpack_require__(53);
 var clone = __webpack_require__(723);
 
+var production = false;
+
 async function startDeployment(options){
 	// Clone the repository
 	var directoryName = "repository";
 	var requestedDir;
 	var deleteRepo = false;
+	production = options.production == true;
 
 	if(options.githubUser && options.githubRepo){
 		var clonePromise = new Promise((resolve) => {
@@ -5848,6 +5852,25 @@ async function scanPath(parent, options) {
 					data: {
 						errors: json.errors
 					}
+				});
+			}catch(error){
+				if(error.response){
+					console.log(error.response.data.errors);
+				}else{
+					console.log(error);
+				}
+			}
+		}else if(json.type == "env"){
+			// Create or update the env vars on the server
+			try{
+				await axios.default({
+					url: `${options.baseUrl}/api/${options.apiId}/env_vars`,
+					method: 'put',
+					headers: {
+						Authorization: options.auth,
+						'Content-Type': 'application/json'
+					},
+					data: production ? json.production : json.development
 				});
 			}catch(error){
 				if(error.response){
