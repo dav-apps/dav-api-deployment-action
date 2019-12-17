@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 var clone = require('git-clone');
+const { exec } = require('child_process');
 
 var production = false;
 
@@ -192,6 +193,13 @@ async function scanPath(parent, options) {
 				}else{
 					console.log(error);
 				}
+			}
+		}else if(json.type == "tests" && !production){
+			for(let url of json.tests){
+				exec(`mocha ${path.resolve(parent, url)}`, (err, stdout, stderr) => {
+					console.log(stdout)
+					console.log(stderr)
+				});
 			}
 		}
 	}
