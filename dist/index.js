@@ -6042,12 +6042,10 @@ async function scanPath(parent, options) {
 				}
 			}
 		}else if(json.type == "tests" && !production){
-			for(let url of json.tests){
-				exec(`mocha ${path.resolve(parent, url)}`, (err, stdout, stderr) => {
-					console.log(stdout)
-					console.log(stderr)
-				});
-			}
+			exec(`mocha ${path.resolve(parent, json.source)}/**/*.spec.js --timeout 10000 --recursive`, (err, stdout, stderr) => {
+				console.log(stdout)
+				console.log(stderr)
+			});
 		}
 	}
 }
