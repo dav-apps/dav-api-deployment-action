@@ -3,6 +3,7 @@ const fs = require('fs');
 const axios = require('axios');
 var clone = require('git-clone');
 const { exec } = require('child_process');
+var mysql = require('mysql');
 
 var production = false;
 
@@ -33,7 +34,11 @@ async function startDeployment(options){
 
 	for(let dir of dirs){
 		if(dir[0] == '.') continue;
-		await scanPath(path.resolve(requestedDir, dir), options);
+		let fullPath = path.resolve(requestedDir, dir);
+
+		if(fs.statSync(fullPath).isDirectory()){
+			await scanPath(fullPath, options);
+		}
 	}
 
 	if(deleteRepo){
@@ -195,12 +200,145 @@ async function scanPath(parent, options) {
 				}
 			}
 		}else if(json.type == "tests" && !production){
-			exec(`mocha ${path.resolve(parent, json.source)}/**/*.spec.js --timeout 10000 --recursive`, (err, stdout, stderr) => {
+			if(json.data){
+				// Get the test data by running the data file
+				let data = require(path.resolve(parent, json.data));
+
+				// Connect to the database
+				var connection = mysql.createConnection({
+					host: process.env.DATABASE_HOST,
+					user: process.env.DATABASE_USER,
+					database: process.env.DATABASE_NAME
+				});
+				connection.connect();
+
+				// Inject the test data into the database
+				for(let tableObject of data.tableObjects){
+					await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties);
+				}
+
+				connection.end();
+			}
+
+			// Run all tests
+			exec(`mocha ${path.resolve(parent, json.source)}/**/*.spec.js --timeout 20000 --recursive`, (err, stdout, stderr) => {
 				console.log(stdout)
 				console.log(stderr)
 			});
 		}
 	}
+}
+
+async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties){
+	// Try to get the table object
+	let dbTableObject = await getTableObjectFromDatabase(connection, uuid);
+
+	if(dbTableObject){
+		// Update each property
+		for(let key in properties){
+			let value = properties[key];
+
+			// Check if the property exists in the database
+			let dbProperty = await getPropertyFromDatabase(connection, dbTableObject.id, key);
+
+			if(dbProperty){
+				if(value.length == 0){
+					// Delete the property
+					await deletePropertyInDatabase(connection, dbProperty.id);
+				}else{
+					// Update the property
+					await updatePropertyInDatabase(connection, dbProperty.id, value);
+				}
+			}else{
+				if(value.length == 0) continue;
+
+				// Create the property
+				await createPropertyInDatabase(connection, dbTableObject.id, key, value);
+			}
+		}
+	}else{
+		// Create the table object
+		await createTableObjectInDatabase(connection, uuid, userId, tableId, file);
+		dbTableObject = await getTableObjectFromDatabase(connection, uuid);
+
+		// Create the properties
+		for(let key in properties){
+			let value = properties[key];
+			if(value.length == 0) continue;
+
+			await createPropertyInDatabase(connection, dbTableObject.id, key, value);
+		}
+	}
+}
+
+async function createTableObjectInDatabase(connection, uuid, userId, tableId, file){
+	return new Promise(resolve => {
+		let currentDate = new Date();
+		connection.query("INSERT INTO table_objects (uuid, user_id, table_id, file, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", [uuid, userId, tableId, file, currentDate, currentDate], () => {
+			resolve();
+		});
+	});
+}
+
+async function getTableObjectFromDatabase(connection, uuid){
+	return new Promise(resolve => {
+		connection.query("SELECT * FROM table_objects WHERE uuid = ?", [uuid], (tableObjectQueryError, tableObjectQueryResults, tableObjectQueryFields) => {
+			if(tableObjectQueryResults.length == 0){
+				resolve(null);
+			}else{
+				let dbTableObject = tableObjectQueryResults[0];
+				resolve({
+					id: dbTableObject.id,
+					tableId: dbTableObject.table_id,
+					userId: dbTableObject.user_id,
+					uuid: dbTableObject.uuid,
+					file: dbTableObject.file == 1
+				});
+			}
+		});
+	});
+}
+
+async function createPropertyInDatabase(connection, tableObjectId, name, value){
+	return new Promise(resolve => {
+		connection.query("INSERT INTO properties (table_object_id, name, value) VALUES (?, ?, ?)", [tableObjectId, name, value], () => {
+			resolve();
+		});
+	});
+}
+
+async function getPropertyFromDatabase(connection, tableObjectId, name){
+	return new Promise(resolve => {
+		connection.query("SELECT * FROM properties WHERE table_object_id = ? AND name = ?", [tableObjectId, name], (propertyQueryError, propertyQueryResults, propertyQueryFields) => {
+			if(propertyQueryResults.length == 0){
+				resolve(null);
+			}else{
+				let dbProperty = propertyQueryResults[0];
+				resolve({
+					id: dbProperty.id,
+					tableObjectId: dbProperty.table_object_id,
+					name: dbProperty.name,
+					value: dbProperty.value
+				});
+			}
+		});
+	});
+}
+
+async function updatePropertyInDatabase(connection, id, value){
+	return new Promise(resolve => {
+		connection.query("UPDATE properties SET value = ? WHERE id = ?", [value, id], () => {
+			resolve();
+		});
+	});
+}
+
+async function deletePropertyInDatabase(connection, id){
+	return new Promise(resolve => {
+		connection.query("DELETE FROM properties WHERE id = ?", [id], () => {
+			resolve();
+		});
+	});
 }
 
 module.exports = {
