@@ -213,8 +213,16 @@ async function scanPath(parent, options) {
 				connection.connect();
 
 				// Inject the test data into the database
-				for(let tableObject of data.tableObjects){
-					await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties);
+				if(data.tableObjects){
+					for(let tableObject of data.tableObjects){
+						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties);
+					}
+				}
+
+				if(data.collections){
+					for(let collection of data.collections){
+						await createOrUpdateCollectionWithTableObjects(connection, collection.tableId, collection.name, collection.tableObjects);
+					}
 				}
 
 				connection.end();
@@ -229,6 +237,7 @@ async function scanPath(parent, options) {
 	}
 }
 
+//#region TableObject database functions
 async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties){
 	// Try to get the table object
 	let dbTableObject = await getTableObjectFromDatabase(connection, uuid);
@@ -298,7 +307,9 @@ async function getTableObjectFromDatabase(connection, uuid){
 		});
 	});
 }
+//#endregion
 
+//#region Property database functions
 async function createPropertyInDatabase(connection, tableObjectId, name, value){
 	return new Promise(resolve => {
 		connection.query("INSERT INTO properties (table_object_id, name, value) VALUES (?, ?, ?)", [tableObjectId, name, value], () => {
@@ -340,6 +351,75 @@ async function deletePropertyInDatabase(connection, id){
 		});
 	});
 }
+//#endregion
+
+//#region Collection database functions
+async function createOrUpdateCollectionWithTableObjects(connection, tableId, name, tableObjects){
+	let dbCollection = await getCollectionFromDatabase(connection, tableId, name);
+
+	if(dbCollection){
+		// Delete all TableObjectCollections of the collection
+		await deleteTableObjectCollectionsInDatabase(connection, dbCollection.id);
+	}else{
+		// Create the collection
+		await createCollectionInDatabase(connection, tableId, name);
+		dbCollection = await getCollectionFromDatabase(connection, tableId, name);
+	}
+
+	// Create all TableObjectCollections of the collection
+	for(let objUuid of tableObjects){
+		// Get the table object
+		let tableObject = await getTableObjectFromDatabase(connection, objUuid);
+
+		// Create the TableObjectCollection
+		await createTableObjectCollectionInDatabase(connection, tableObject.id, dbCollection.id);
+	}
+}
+
+async function createCollectionInDatabase(connection, tableId, name){
+	return new Promise(resolve => {
+		connection.query("INSERT INTO collections (table_id, name) VALUES (?, ?)", [tableId, name], () => {
+			resolve();
+		});
+	});
+}
+
+async function getCollectionFromDatabase(connection, tableId, name){
+	return new Promise(resolve => {
+		connection.query("SELECT * FROM collections WHERE table_id = ? AND name = ?", [tableId, name], (collectionQueryError, collectionQueryResults, connectionQueryFields) => {
+			if(collectionQueryResults.length == 0){
+				resolve(null);
+			}else{
+				let dbCollection = collectionQueryResults[0];
+				resolve({
+					id: dbCollection.id,
+					tableId: dbCollection.table_id,
+					name: dbCollection.name
+				});
+			}
+		});
+	});
+}
+//#endregion
+
+//#region TableObjectCollection database functions
+async function createTableObjectCollectionInDatabase(connection, tableObjectId, collectionId){
+	return new Promise(resolve => {
+		let currentDate = new Date();
+		connection.query("INSERT INTO table_object_collections (table_object_id, collection_id, created_at, updated_at) VALUES (?, ?, ?, ?)", [tableObjectId, collectionId, currentDate, currentDate], () => {
+			resolve();
+		});
+	});
+}
+
+async function deleteTableObjectCollectionsInDatabase(connection, collectionId){
+	return new Promise(resolve => {
+		connection.query("DELETE FROM table_object_collections WHERE collection_id = ?", [collectionId], () => {
+			resolve();
+		});
+	});
+}
+//#endregion
 
 module.exports = {
 	startDeployment
