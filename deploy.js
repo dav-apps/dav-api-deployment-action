@@ -221,7 +221,13 @@ async function scanPath(parent, options) {
 
 				if(data.collections){
 					for(let collection of data.collections){
-						await createOrUpdateCollectionWithTableObjects(connection, collection.tableId, collection.name, collection.tableObjects);
+						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects);
+					}
+				}
+
+				if(data.purchases){
+					for(let purchase of data.purchases){
+						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed);
 					}
 				}
 
@@ -354,7 +360,7 @@ async function deletePropertyInDatabase(connection, id){
 //#endregion
 
 //#region Collection database functions
-async function createOrUpdateCollectionWithTableObjects(connection, tableId, name, tableObjects){
+async function createOrUpdateCollectionWithTableObjectsInDatabase(connection, tableId, name, tableObjects){
 	let dbCollection = await getCollectionFromDatabase(connection, tableId, name);
 
 	if(dbCollection){
@@ -416,6 +422,68 @@ async function deleteTableObjectCollectionsInDatabase(connection, collectionId){
 	return new Promise(resolve => {
 		connection.query("DELETE FROM table_object_collections WHERE collection_id = ?", [collectionId], () => {
 			resolve();
+		});
+	});
+}
+//#endregion
+
+//#region Purchase database functions
+async function createOrUpdatePurchaseInDatabase(connection, id, userId, tableObjectUuid, price, currency, completed){
+	// Get the purchase from the database
+	let dbPurchase = await getPurchaseFromDatabase(connection, id);
+
+	// Get the table object from the database
+	let dbTableObject = await getTableObjectFromDatabase(connection, tableObjectUuid);
+	if(!dbTableObject) return;
+
+	if(dbPurchase){
+		// Update the purchase
+		await updatePurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed);
+	}else{
+		// Create the purchase
+		await createPurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed);
+	}
+}
+
+async function createPurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed){
+	return new Promise(resolve => {
+		connection.query("INSERT INTO purchases (id, user_id, table_object_id, price, currency, completed) VALUES (?, ?, ?, ?, ?, ?)", [id, userId, tableObjectId, price, currency, completed], () => {
+			resolve();
+		});
+	});
+}
+
+async function updatePurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed){
+	return new Promise(resolve => {
+		connection.query("UPDATE purchases SET user_id = ?, table_object_id = ?, price = ?, currency = ?, completed = ? WHERE id = ?", [userId, tableObjectId, price, currency, completed, id], () => {
+			resolve();
+		});
+	});
+}
+
+async function getPurchaseFromDatabase(connection, id){
+	return new Promise(resolve => {
+		connection.query("SELECT * FROM purchases WHERE id = ?", [id], (error, results, fields) => {
+			if(results.length == 0){
+				resolve(null);
+			}else{
+				let dbPurchase = results[0];
+				resolve({
+					id: dbPurchase.id,
+					userId: dbPurchase.user_id,
+					tableObjectId: dbPurchase.table_object_id,
+					paymentIntentId: dbPurchase.payment_intent_id,
+					productImage: dbPurchase.product_image,
+					productName: dbPurchase.product_name,
+					providerImage: dbPurchase.provider_image,
+					providerName: dbPurchase.provider_name,
+					price: dbPurchase.price,
+					currency: dbPurchase.currency,
+					completed: dbPurchase.completed,
+					createdAt: dbPurchase.created_at,
+					updatedAt: dbPurchase.updated_at
+				});
+			}
 		});
 	});
 }
