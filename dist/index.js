@@ -11713,7 +11713,7 @@ async function scanPath(parent, options) {
 				}
 			}
 		}else if(json.type == "tests" && !production){
-			if(json.data){
+			if (json.data) {
 				// Get the test data by running the data file
 				let data = require(path.resolve(parent, json.data));
 
@@ -11726,20 +11726,20 @@ async function scanPath(parent, options) {
 				connection.connect();
 
 				// Inject the test data into the database
-				if(data.tableObjects){
-					for(let tableObject of data.tableObjects){
+				if (data.tableObjects) {
+					for (let tableObject of data.tableObjects) {
 						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties);
 					}
 				}
 
-				if(data.collections){
-					for(let collection of data.collections){
+				if (data.collections) {
+					for (let collection of data.collections) {
 						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects);
 					}
 				}
 
-				if(data.purchases){
-					for(let purchase of data.purchases){
+				if (data.purchases) {
+					for (let purchase of data.purchases) {
 						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed);
 					}
 				}
@@ -11897,7 +11897,8 @@ async function createOrUpdateCollectionWithTableObjectsInDatabase(connection, ta
 
 async function createCollectionInDatabase(connection, tableId, name){
 	return new Promise(resolve => {
-		connection.query("INSERT INTO collections (table_id, name) VALUES (?, ?)", [tableId, name], () => {
+		let currentDate = new Date();
+		connection.query("INSERT INTO collections (table_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)", [tableId, name, currentDate, currentDate], () => {
 			resolve();
 		});
 	});
