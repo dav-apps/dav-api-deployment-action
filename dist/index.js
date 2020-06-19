@@ -11961,7 +11961,8 @@ async function createOrUpdatePurchaseInDatabase(connection, id, userId, tableObj
 
 async function createPurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed){
 	return new Promise(resolve => {
-		connection.query("INSERT INTO purchases (id, user_id, table_object_id, price, currency, completed) VALUES (?, ?, ?, ?, ?, ?)", [id, userId, tableObjectId, price, currency, completed], () => {
+		let currentDate = new Date();
+		connection.query("INSERT INTO purchases (id, user_id, table_object_id, price, currency, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [id, userId, tableObjectId, price, currency, completed, currentDate, currentDate], () => {
 			resolve();
 		});
 	});
