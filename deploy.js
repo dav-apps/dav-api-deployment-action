@@ -71,7 +71,18 @@ async function scanPath(parent, options) {
 
 		if(json.type == "endpoint"){
 			if(!json.path || !json.method || !json.source) continue;
-			let commands = fs.readFileSync(path.resolve(parent, json.source), {encoding: 'utf8'});
+			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' });
+			
+			var body = {
+				path: json.path,
+				method: json.method,
+				commands,
+				caching: false
+			}
+
+			if (json.caching) {
+				body.caching = true
+			}
 
 			// Create or update the endpoint on the server
 			try{
@@ -82,11 +93,7 @@ async function scanPath(parent, options) {
 						Authorization: options.auth,
 						'Content-Type': 'application/json'
 					},
-					data: {
-						path: json.path,
-						method: json.method,
-						commands
-					}
+					data: body
 				});
 			}catch(error){
 				if(error.response){
