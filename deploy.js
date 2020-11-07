@@ -1,13 +1,16 @@
-const path = require('path');
-const fs = require('fs');
-const axios = require('axios');
-var clone = require('git-clone');
-const { exec } = require('child_process');
-var mysql = require('mysql');
+import path from 'path'
+import url from 'url'
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
+import fs from 'fs'
+import axios from 'axios'
+import clone from 'git-clone'
+import child_process from 'child_process'
+const exec = child_process.exec
+import mysql from 'mysql'
 
-var production = false;
+var production = false
 
-async function startDeployment(options){
+export async function startDeployment(options){
 	// Clone the repository
 	var directoryName = "repository";
 	var requestedDir;
@@ -24,10 +27,10 @@ async function startDeployment(options){
 		let error = await clonePromise;
 		if(error) throw error;
 
-		requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName);
+		requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName)
 		deleteRepo = true;
-	}else{
-		requestedDir = path.resolve(__dirname, options.project);
+	} else {
+		requestedDir = path.resolve(__dirname, options.project)
 	}
 
 	var dirs = fs.readdirSync(requestedDir);
@@ -209,7 +212,7 @@ async function scanPath(parent, options) {
 		}else if(json.type == "tests" && !production){
 			if (json.data) {
 				// Get the test data by running the data file
-				let data = require(path.resolve(parent, json.data));
+				let data = (await import(path.resolve(parent, json.data))).default
 
 				// Connect to the database
 				var connection = mysql.createConnection({
@@ -497,7 +500,3 @@ async function getPurchaseFromDatabase(connection, id){
 	});
 }
 //#endregion
-
-module.exports = {
-	startDeployment
-}
