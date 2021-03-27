@@ -64,14 +64,14 @@ const exec = external_child_process_.exec
 
 var production = false
 
-async function startDeployment(options){
+async function startDeployment(options) {
 	// Clone the repository
 	var directoryName = "repository";
 	var requestedDir;
 	var deleteRepo = false;
 	production = options.production == true;
 
-	if(options.githubUser && options.githubRepo){
+	if (options.githubUser && options.githubRepo) {
 		var clonePromise = new Promise((resolve) => {
 			git_clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
 				resolve(error);
@@ -79,7 +79,7 @@ async function startDeployment(options){
 		});
 
 		let error = await clonePromise;
-		if(error) throw error;
+		if (error) throw error;
 
 		requestedDir = options.directory ? external_path_.resolve(options.directory, directoryName) : external_path_.resolve(deploy_dirname, directoryName)
 		deleteRepo = true;
@@ -89,18 +89,18 @@ async function startDeployment(options){
 
 	var dirs = external_fs_.readdirSync(requestedDir);
 
-	for(let dir of dirs){
-		if(dir[0] == '.') continue;
+	for (let dir of dirs) {
+		if (dir[0] == '.') continue;
 		let fullPath = external_path_.resolve(requestedDir, dir);
 
-		if(external_fs_.statSync(fullPath).isDirectory()){
+		if (external_fs_.statSync(fullPath).isDirectory()) {
 			await scanPath(fullPath, options);
 		}
 	}
 
-	if(deleteRepo){
+	if (deleteRepo) {
 		// Delete the cloned repository
-		external_fs_.rmdirSync(requestedDir, {recursive: true});
+		external_fs_.rmdirSync(requestedDir, { recursive: true });
 	}
 }
 
@@ -108,28 +108,28 @@ async function scanPath(parent, options) {
 	var dirs = external_fs_.readdirSync(parent);
 	var files = [];
 
-	for(let dir of dirs){
-		if(dir[0] == '.') continue;
+	for (let dir of dirs) {
+		if (dir[0] == '.') continue;
 
 		var fullPath = external_path_.resolve(parent, dir);
-		if(external_fs_.statSync(fullPath).isDirectory()){
+		if (external_fs_.statSync(fullPath).isDirectory()) {
 			await scanPath(fullPath, options);
-		}else{
+		} else {
 			// Add the file to the files array
 			files.push(dir);
 		}
 	}
 
-	for(let file of files){
-		if(file.split('.').pop() != "json") continue;
+	for (let file of files) {
+		if (file.split('.').pop() != "json") continue
 
 		// Read the content of the json file
-		var json = JSON.parse(external_fs_.readFileSync(external_path_.resolve(parent, file)));
+		var json = JSON.parse(external_fs_.readFileSync(external_path_.resolve(parent, file)))
 
-		if(json.type == "endpoint"){
-			if(!json.path || !json.method || !json.source) continue;
-			let commands = external_fs_.readFileSync(external_path_.resolve(parent, json.source), { encoding: 'utf8' });
-			
+		if (json.type == "endpoint") {
+			if (!json.path || !json.method || !json.source) continue;
+			let commands = external_fs_.readFileSync(external_path_.resolve(parent, json.source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
+
 			var body = {
 				path: json.path,
 				method: json.method,
@@ -142,7 +142,7 @@ async function scanPath(parent, options) {
 			}
 
 			// Create or update the endpoint on the server
-			try{
+			try {
 				await axios.default({
 					url: `${options.baseUrl}/api/${options.apiId}/endpoint`,
 					method: 'put',
@@ -151,20 +151,20 @@ async function scanPath(parent, options) {
 						'Content-Type': 'application/json'
 					},
 					data: body
-				});
-			}catch(error){
-				if(error.response){
-					console.log(error.response.data.errors);
-				}else{
-					console.log(error);
+				})
+			} catch (error) {
+				if (error.response) {
+					console.log(error.response.data.errors)
+				} else {
+					console.log(error)
 				}
 			}
-		}else if(json.type == "function"){
-			if(!json.name || !json.params || !json.source) continue;
-			let commands = external_fs_.readFileSync(external_path_.resolve(parent, json.source), {encoding: 'utf8'});
+		} else if (json.type == "function") {
+			if (!json.name || !json.params || !json.source) continue
+			let commands = external_fs_.readFileSync(external_path_.resolve(parent, json.source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
 
 			// Create or update the function on the server
-			try{
+			try {
 				await axios.default({
 					url: `${options.baseUrl}/api/${options.apiId}/function`,
 					method: 'put',
@@ -177,29 +177,29 @@ async function scanPath(parent, options) {
 						params: json.params.join(','),
 						commands
 					}
-				});
-			}catch(error){
-				if(error.response){
-					console.log(error.response.data.errors);
-				}else{
-					console.log(error);
+				})
+			} catch (error) {
+				if (error.response) {
+					console.log(error.response.data.errors)
+				} else {
+					console.log(error)
 				}
 			}
-		}else if(json.type == "functions"){
+		} else if (json.type == "functions") {
 			// Create or update the functions on the server
 			var functions = json.functions;
 
-			if(functions){
-				for(let func of functions){
-					let name = func.name;
-					let params = func.params;
-					let source = func.source;
+			if (functions) {
+				for (let func of functions) {
+					let name = func.name
+					let params = func.params
+					let source = func.source
 
 					// Find the source file
-					let commands = external_fs_.readFileSync(external_path_.resolve(parent, source), {encoding: 'utf8'});
+					let commands = external_fs_.readFileSync(external_path_.resolve(parent, source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
 
-					if(commands){
-						try{
+					if (commands) {
+						try {
 							await axios.default({
 								url: `${options.baseUrl}/api/${options.apiId}/function`,
 								method: 'put',
@@ -212,20 +212,20 @@ async function scanPath(parent, options) {
 									params: params.join(','),
 									commands
 								}
-							});
-						}catch(error){
-							if(error.response){
-								console.log(error.response.data.errors);
-							}else{
-								console.log(error);
+							})
+						} catch (error) {
+							if (error.response) {
+								console.log(error.response.data.errors)
+							} else {
+								console.log(error)
 							}
 						}
 					}
 				}
 			}
-		}else if(json.type == "errors"){
+		} else if (json.type == "errors") {
 			// Create or update the errors on the server
-			try{
+			try {
 				await axios.default({
 					url: `${options.baseUrl}/api/${options.apiId}/errors`,
 					method: 'put',
@@ -236,17 +236,17 @@ async function scanPath(parent, options) {
 					data: {
 						errors: json.errors
 					}
-				});
-			}catch(error){
-				if(error.response){
-					console.log(error.response.data.errors);
-				}else{
-					console.log(error);
+				})
+			} catch (error) {
+				if (error.response) {
+					console.log(error.response.data.errors)
+				} else {
+					console.log(error)
 				}
 			}
-		}else if(json.type == "env"){
+		} else if (json.type == "env") {
 			// Create or update the env vars on the server
-			try{
+			try {
 				await axios.default({
 					url: `${options.baseUrl}/api/${options.apiId}/env_vars`,
 					method: 'put',
@@ -254,16 +254,18 @@ async function scanPath(parent, options) {
 						Authorization: options.auth,
 						'Content-Type': 'application/json'
 					},
-					data: production ? json.production : json.development
-				});
-			}catch(error){
-				if(error.response){
-					console.log(error.response.data.errors);
-				}else{
-					console.log(error);
+					data: {
+						env_vars: production ? json.production : json.development
+					}
+				})
+			} catch (error) {
+				if (error.response) {
+					console.log(error.response.data.errors)
+				} else {
+					console.log(error)
 				}
 			}
-		}else if(json.type == "tests" && !production){
+		} else if (json.type == "tests" && !production) {
 			if (json.data) {
 				// Get the test data by running the data file
 				let data = (await __webpack_require__(9743)(external_path_.resolve(parent, json.data))).default
@@ -273,285 +275,284 @@ async function scanPath(parent, options) {
 					host: process.env.DATABASE_HOST,
 					user: process.env.DATABASE_USER,
 					database: process.env.DATABASE_NAME
-				});
-				connection.connect();
+				})
+				connection.connect()
 
 				// Inject the test data into the database
 				if (data.tableObjects) {
 					for (let tableObject of data.tableObjects) {
-						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties);
+						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties)
 					}
 				}
 
 				if (data.collections) {
 					for (let collection of data.collections) {
-						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects);
+						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects)
 					}
 				}
 
 				if (data.purchases) {
 					for (let purchase of data.purchases) {
-						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed);
+						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed)
 					}
 				}
 
-				connection.end();
+				connection.end()
 			}
 
 			// Run all tests
 			exec(`mocha ${external_path_.resolve(parent, json.source)}/**/*.spec.js --timeout 20000 --recursive`, (err, stdout, stderr) => {
 				console.log(stdout)
 				console.log(stderr)
-			});
+			})
 		}
 	}
 }
 
 //#region TableObject database functions
-async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties){
+async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties) {
 	// Try to get the table object
-	let dbTableObject = await getTableObjectFromDatabase(connection, uuid);
+	let dbTableObject = await getTableObjectFromDatabase(connection, uuid)
 
-	if(dbTableObject){
+	if (dbTableObject) {
 		// Update each property
-		for(let key in properties){
-			let value = properties[key];
+		for (let key in properties) {
+			let value = properties[key]
 
 			// Check if the property exists in the database
-			let dbProperty = await getPropertyFromDatabase(connection, dbTableObject.id, key);
+			let dbProperty = await getPropertyFromDatabase(connection, dbTableObject.id, key)
 
-			if(dbProperty){
-				if(value.length == 0){
+			if (dbProperty) {
+				if (value.length == 0) {
 					// Delete the property
-					await deletePropertyInDatabase(connection, dbProperty.id);
-				}else{
+					await deletePropertyInDatabase(connection, dbProperty.id)
+				} else {
 					// Update the property
-					await updatePropertyInDatabase(connection, dbProperty.id, value);
+					await updatePropertyInDatabase(connection, dbProperty.id, value)
 				}
-			}else{
-				if(value.length == 0) continue;
+			} else {
+				if (value.length == 0) continue
 
 				// Create the property
-				await createPropertyInDatabase(connection, dbTableObject.id, key, value);
+				await createPropertyInDatabase(connection, dbTableObject.id, key, value)
 			}
 		}
-	}else{
+	} else {
 		// Create the table object
-		await createTableObjectInDatabase(connection, uuid, userId, tableId, file);
-		dbTableObject = await getTableObjectFromDatabase(connection, uuid);
+		await createTableObjectInDatabase(connection, uuid, userId, tableId, file)
+		dbTableObject = await getTableObjectFromDatabase(connection, uuid)
 
 		// Create the properties
-		for(let key in properties){
-			let value = properties[key];
-			if(value.length == 0) continue;
+		for (let key in properties) {
+			let value = properties[key]
+			if (value.length == 0) continue
 
-			await createPropertyInDatabase(connection, dbTableObject.id, key, value);
+			await createPropertyInDatabase(connection, dbTableObject.id, key, value)
 		}
 	}
 }
 
-async function createTableObjectInDatabase(connection, uuid, userId, tableId, file){
+async function createTableObjectInDatabase(connection, uuid, userId, tableId, file) {
 	return new Promise(resolve => {
-		let currentDate = new Date();
+		let currentDate = new Date()
 		connection.query("INSERT INTO table_objects (uuid, user_id, table_id, file, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", [uuid, userId, tableId, file, currentDate, currentDate], () => {
-			resolve();
-		});
-	});
+			resolve()
+		})
+	})
 }
 
-async function getTableObjectFromDatabase(connection, uuid){
+async function getTableObjectFromDatabase(connection, uuid) {
 	return new Promise(resolve => {
 		connection.query("SELECT * FROM table_objects WHERE uuid = ?", [uuid], (tableObjectQueryError, tableObjectQueryResults, tableObjectQueryFields) => {
-			if(tableObjectQueryResults.length == 0){
-				resolve(null);
-			}else{
-				let dbTableObject = tableObjectQueryResults[0];
+			if (tableObjectQueryResults.length == 0) {
+				resolve(null)
+			} else {
+				let dbTableObject = tableObjectQueryResults[0]
 				resolve({
 					id: dbTableObject.id,
-					tableId: dbTableObject.table_id,
 					userId: dbTableObject.user_id,
+					tableId: dbTableObject.table_id,
 					uuid: dbTableObject.uuid,
 					file: dbTableObject.file == 1
-				});
+				})
 			}
-		});
-	});
+		})
+	})
 }
 //#endregion
 
 //#region Property database functions
-async function createPropertyInDatabase(connection, tableObjectId, name, value){
+async function createPropertyInDatabase(connection, tableObjectId, name, value) {
 	return new Promise(resolve => {
-		connection.query("INSERT INTO properties (table_object_id, name, value) VALUES (?, ?, ?)", [tableObjectId, name, value], () => {
-			resolve();
-		});
-	});
+		connection.query("INSERT INTO table_object_properties (table_object_id, name, value) VALUES (?, ?, ?)", [tableObjectId, name, value], () => {
+			resolve()
+		})
+	})
 }
 
-async function getPropertyFromDatabase(connection, tableObjectId, name){
+async function getPropertyFromDatabase(connection, tableObjectId, name) {
 	return new Promise(resolve => {
-		connection.query("SELECT * FROM properties WHERE table_object_id = ? AND name = ?", [tableObjectId, name], (propertyQueryError, propertyQueryResults, propertyQueryFields) => {
-			if(propertyQueryResults.length == 0){
-				resolve(null);
-			}else{
-				let dbProperty = propertyQueryResults[0];
+		connection.query("SELECT * FROM table_object_properties WHERE table_object_id = ? AND name = ?", [tableObjectId, name], (propertyQueryError, propertyQueryResults, propertyQueryFields) => {
+			if (propertyQueryResults.length == 0) {
+				resolve(null)
+			} else {
+				let dbProperty = propertyQueryResults[0]
 				resolve({
 					id: dbProperty.id,
 					tableObjectId: dbProperty.table_object_id,
 					name: dbProperty.name,
 					value: dbProperty.value
-				});
+				})
 			}
-		});
-	});
+		})
+	})
 }
 
-async function updatePropertyInDatabase(connection, id, value){
+async function updatePropertyInDatabase(connection, id, value) {
 	return new Promise(resolve => {
-		connection.query("UPDATE properties SET value = ? WHERE id = ?", [value, id], () => {
-			resolve();
-		});
-	});
+		connection.query("UPDATE table_object_properties SET value = ? WHERE id = ?", [value, id], () => {
+			resolve()
+		})
+	})
 }
 
-async function deletePropertyInDatabase(connection, id){
+async function deletePropertyInDatabase(connection, id) {
 	return new Promise(resolve => {
-		connection.query("DELETE FROM properties WHERE id = ?", [id], () => {
-			resolve();
-		});
-	});
+		connection.query("DELETE FROM table_object_properties WHERE id = ?", [id], (error) => {
+			resolve()
+		})
+	})
 }
 //#endregion
 
 //#region Collection database functions
-async function createOrUpdateCollectionWithTableObjectsInDatabase(connection, tableId, name, tableObjects){
-	let dbCollection = await getCollectionFromDatabase(connection, tableId, name);
+async function createOrUpdateCollectionWithTableObjectsInDatabase(connection, tableId, name, tableObjects) {
+	let dbCollection = await getCollectionFromDatabase(connection, tableId, name)
 
-	if(dbCollection){
+	if (dbCollection) {
 		// Delete all TableObjectCollections of the collection
-		await deleteTableObjectCollectionsInDatabase(connection, dbCollection.id);
-	}else{
+		await deleteTableObjectCollectionsInDatabase(connection, dbCollection.id)
+	} else {
 		// Create the collection
-		await createCollectionInDatabase(connection, tableId, name);
-		dbCollection = await getCollectionFromDatabase(connection, tableId, name);
+		await createCollectionInDatabase(connection, tableId, name)
+		dbCollection = await getCollectionFromDatabase(connection, tableId, name)
 	}
 
 	// Create all TableObjectCollections of the collection
-	for(let objUuid of tableObjects){
+	for (let objUuid of tableObjects) {
 		// Get the table object
-		let tableObject = await getTableObjectFromDatabase(connection, objUuid);
+		let tableObject = await getTableObjectFromDatabase(connection, objUuid)
 
 		// Create the TableObjectCollection
-		await createTableObjectCollectionInDatabase(connection, tableObject.id, dbCollection.id);
+		await createTableObjectCollectionInDatabase(connection, tableObject.id, dbCollection.id)
 	}
 }
 
-async function createCollectionInDatabase(connection, tableId, name){
+async function createCollectionInDatabase(connection, tableId, name) {
 	return new Promise(resolve => {
-		let currentDate = new Date();
+		let currentDate = new Date()
 		connection.query("INSERT INTO collections (table_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)", [tableId, name, currentDate, currentDate], () => {
-			resolve();
-		});
-	});
+			resolve()
+		})
+	})
 }
 
-async function getCollectionFromDatabase(connection, tableId, name){
+async function getCollectionFromDatabase(connection, tableId, name) {
 	return new Promise(resolve => {
 		connection.query("SELECT * FROM collections WHERE table_id = ? AND name = ?", [tableId, name], (collectionQueryError, collectionQueryResults, connectionQueryFields) => {
-			if(collectionQueryResults.length == 0){
-				resolve(null);
-			}else{
-				let dbCollection = collectionQueryResults[0];
+			if (collectionQueryResults.length == 0) {
+				resolve(null)
+			} else {
+				let dbCollection = collectionQueryResults[0]
 				resolve({
 					id: dbCollection.id,
 					tableId: dbCollection.table_id,
 					name: dbCollection.name
-				});
+				})
 			}
-		});
-	});
+		})
+	})
 }
 //#endregion
 
 //#region TableObjectCollection database functions
-async function createTableObjectCollectionInDatabase(connection, tableObjectId, collectionId){
+async function createTableObjectCollectionInDatabase(connection, tableObjectId, collectionId) {
 	return new Promise(resolve => {
-		let currentDate = new Date();
-		connection.query("INSERT INTO table_object_collections (table_object_id, collection_id, created_at, updated_at) VALUES (?, ?, ?, ?)", [tableObjectId, collectionId, currentDate, currentDate], () => {
-			resolve();
-		});
-	});
+		connection.query("INSERT INTO table_object_collections (table_object_id, collection_id, created_at) VALUES (?, ?, ?)", [tableObjectId, collectionId, new Date()], () => {
+			resolve()
+		})
+	})
 }
 
-async function deleteTableObjectCollectionsInDatabase(connection, collectionId){
+async function deleteTableObjectCollectionsInDatabase(connection, collectionId) {
 	return new Promise(resolve => {
-		connection.query("DELETE FROM table_object_collections WHERE collection_id = ?", [collectionId], () => {
-			resolve();
-		});
-	});
+		connection.query("DELETE FROM table_object_collections WHERE collection_id = ?", [collectionId], (error) => {
+			resolve()
+		})
+	})
 }
 //#endregion
 
 //#region Purchase database functions
-async function createOrUpdatePurchaseInDatabase(connection, id, userId, tableObjectUuid, price, currency, completed){
+async function createOrUpdatePurchaseInDatabase(connection, id, userId, tableObjectUuid, price, currency, completed) {
 	// Get the purchase from the database
-	let dbPurchase = await getPurchaseFromDatabase(connection, id);
+	let dbPurchase = await getPurchaseFromDatabase(connection, id)
 
 	// Get the table object from the database
-	let dbTableObject = await getTableObjectFromDatabase(connection, tableObjectUuid);
-	if(!dbTableObject) return;
+	let dbTableObject = await getTableObjectFromDatabase(connection, tableObjectUuid)
+	if (!dbTableObject) return
 
-	if(dbPurchase){
+	if (dbPurchase) {
 		// Update the purchase
-		await updatePurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed);
-	}else{
+		await updatePurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed)
+	} else {
 		// Create the purchase
-		await createPurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed);
+		await createPurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed)
 	}
 }
 
-async function createPurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed){
+async function createPurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed) {
 	return new Promise(resolve => {
-		let currentDate = new Date();
+		let currentDate = new Date()
 		connection.query("INSERT INTO purchases (id, user_id, table_object_id, price, currency, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [id, userId, tableObjectId, price, currency, completed, currentDate, currentDate], () => {
-			resolve();
-		});
-	});
+			resolve()
+		})
+	})
 }
 
-async function updatePurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed){
+async function updatePurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed) {
 	return new Promise(resolve => {
 		connection.query("UPDATE purchases SET user_id = ?, table_object_id = ?, price = ?, currency = ?, completed = ? WHERE id = ?", [userId, tableObjectId, price, currency, completed, id], () => {
-			resolve();
-		});
-	});
+			resolve()
+		})
+	})
 }
 
-async function getPurchaseFromDatabase(connection, id){
+async function getPurchaseFromDatabase(connection, id) {
 	return new Promise(resolve => {
 		connection.query("SELECT * FROM purchases WHERE id = ?", [id], (error, results, fields) => {
-			if(results.length == 0){
-				resolve(null);
-			}else{
-				let dbPurchase = results[0];
+			if (results.length == 0) {
+				resolve(null)
+			} else {
+				let dbPurchase = results[0]
 				resolve({
 					id: dbPurchase.id,
 					userId: dbPurchase.user_id,
 					tableObjectId: dbPurchase.table_object_id,
 					paymentIntentId: dbPurchase.payment_intent_id,
-					productImage: dbPurchase.product_image,
-					productName: dbPurchase.product_name,
-					providerImage: dbPurchase.provider_image,
 					providerName: dbPurchase.provider_name,
+					providerImage: dbPurchase.provider_image,
+					productName: dbPurchase.product_name,
+					productImage: dbPurchase.product_image,
 					price: dbPurchase.price,
 					currency: dbPurchase.currency,
 					completed: dbPurchase.completed,
 					createdAt: dbPurchase.created_at,
 					updatedAt: dbPurchase.updated_at
-				});
+				})
 			}
-		});
-	});
+		})
+	})
 }
 //#endregion
 // CONCATENATED MODULE: ./index.js

@@ -67,14 +67,14 @@ async function scanPath(parent, options) {
 	}
 
 	for (let file of files) {
-		if (file.split('.').pop() != "json") continue;
+		if (file.split('.').pop() != "json") continue
 
 		// Read the content of the json file
-		var json = JSON.parse(fs.readFileSync(path.resolve(parent, file)));
+		var json = JSON.parse(fs.readFileSync(path.resolve(parent, file)))
 
 		if (json.type == "endpoint") {
 			if (!json.path || !json.method || !json.source) continue;
-			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' });
+			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
 
 			var body = {
 				path: json.path,
@@ -97,17 +97,17 @@ async function scanPath(parent, options) {
 						'Content-Type': 'application/json'
 					},
 					data: body
-				});
+				})
 			} catch (error) {
 				if (error.response) {
-					console.log(error.response.data.errors);
+					console.log(error.response.data.errors)
 				} else {
-					console.log(error);
+					console.log(error)
 				}
 			}
 		} else if (json.type == "function") {
-			if (!json.name || !json.params || !json.source) continue;
-			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' });
+			if (!json.name || !json.params || !json.source) continue
+			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
 
 			// Create or update the function on the server
 			try {
@@ -123,12 +123,12 @@ async function scanPath(parent, options) {
 						params: json.params.join(','),
 						commands
 					}
-				});
+				})
 			} catch (error) {
 				if (error.response) {
-					console.log(error.response.data.errors);
+					console.log(error.response.data.errors)
 				} else {
-					console.log(error);
+					console.log(error)
 				}
 			}
 		} else if (json.type == "functions") {
@@ -137,12 +137,12 @@ async function scanPath(parent, options) {
 
 			if (functions) {
 				for (let func of functions) {
-					let name = func.name;
-					let params = func.params;
-					let source = func.source;
+					let name = func.name
+					let params = func.params
+					let source = func.source
 
 					// Find the source file
-					let commands = fs.readFileSync(path.resolve(parent, source), { encoding: 'utf8' });
+					let commands = fs.readFileSync(path.resolve(parent, source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
 
 					if (commands) {
 						try {
@@ -158,12 +158,12 @@ async function scanPath(parent, options) {
 									params: params.join(','),
 									commands
 								}
-							});
+							})
 						} catch (error) {
 							if (error.response) {
-								console.log(error.response.data.errors);
+								console.log(error.response.data.errors)
 							} else {
-								console.log(error);
+								console.log(error)
 							}
 						}
 					}
@@ -182,12 +182,12 @@ async function scanPath(parent, options) {
 					data: {
 						errors: json.errors
 					}
-				});
+				})
 			} catch (error) {
 				if (error.response) {
-					console.log(error.response.data.errors);
+					console.log(error.response.data.errors)
 				} else {
-					console.log(error);
+					console.log(error)
 				}
 			}
 		} else if (json.type == "env") {
@@ -203,12 +203,12 @@ async function scanPath(parent, options) {
 					data: {
 						env_vars: production ? json.production : json.development
 					}
-				});
+				})
 			} catch (error) {
 				if (error.response) {
-					console.log(error.response.data.errors);
+					console.log(error.response.data.errors)
 				} else {
-					console.log(error);
+					console.log(error)
 				}
 			}
 		} else if (json.type == "tests" && !production) {
@@ -221,29 +221,29 @@ async function scanPath(parent, options) {
 					host: process.env.DATABASE_HOST,
 					user: process.env.DATABASE_USER,
 					database: process.env.DATABASE_NAME
-				});
-				connection.connect();
+				})
+				connection.connect()
 
 				// Inject the test data into the database
 				if (data.tableObjects) {
 					for (let tableObject of data.tableObjects) {
-						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties);
+						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties)
 					}
 				}
 
 				if (data.collections) {
 					for (let collection of data.collections) {
-						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects);
+						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects)
 					}
 				}
 
 				if (data.purchases) {
 					for (let purchase of data.purchases) {
-						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed);
+						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed)
 					}
 				}
 
-				connection.end();
+				connection.end()
 			}
 
 			// Run all tests
