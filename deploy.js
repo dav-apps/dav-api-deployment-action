@@ -74,7 +74,7 @@ async function scanPath(parent, options) {
 
 		if (json.type == "endpoint") {
 			if (!json.path || !json.method || !json.source) continue;
-			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
+			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' })
 
 			var body = {
 				path: json.path,
@@ -107,7 +107,7 @@ async function scanPath(parent, options) {
 			}
 		} else if (json.type == "function") {
 			if (!json.name || !json.params || !json.source) continue
-			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
+			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' })
 
 			// Create or update the function on the server
 			try {
@@ -142,7 +142,7 @@ async function scanPath(parent, options) {
 					let source = func.source
 
 					// Find the source file
-					let commands = fs.readFileSync(path.resolve(parent, source), { encoding: 'utf8' }).trim().replace(/[\t\r\n]+/gm, "")
+					let commands = fs.readFileSync(path.resolve(parent, source), { encoding: 'utf8' })
 
 					if (commands) {
 						try {
