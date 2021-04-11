@@ -293,7 +293,7 @@ async function scanPath(parent, options) {
 
 				if (data.purchases) {
 					for (let purchase of data.purchases) {
-						await createOrUpdatePurchaseInDatabase(connection, purchase.id, purchase.userId, purchase.tableObjectUuid, purchase.price, purchase.currency, purchase.completed)
+						await createOrUpdatePurchaseWithTableObjectsInDatabase(connection, purchase.id, purchase.userId, purchase.uuid, purchase.price, purchase.currency, purchase.completed, purchase.tableObjects)
 					}
 				}
 
@@ -494,35 +494,44 @@ async function deleteTableObjectCollectionsInDatabase(connection, collectionId) 
 //#endregion
 
 //#region Purchase database functions
-async function createOrUpdatePurchaseInDatabase(connection, id, userId, tableObjectUuid, price, currency, completed) {
+async function createOrUpdatePurchaseWithTableObjectsInDatabase(connection, id, userId, uuid, price, currency, completed, tableObjects) {
 	// Get the purchase from the database
 	let dbPurchase = await getPurchaseFromDatabase(connection, id)
 
-	// Get the table object from the database
-	let dbTableObject = await getTableObjectFromDatabase(connection, tableObjectUuid)
-	if (!dbTableObject) return
-
 	if (dbPurchase) {
 		// Update the purchase
-		await updatePurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed)
+		await updatePurchaseInDatabase(connection, id, userId, uuid, price, currency, completed)
+
+		// Delete all TableObjectPurchases of the purchase
+		await deleteTableObjectPurchasesInDatabase(connection, dbPurchase.id)
 	} else {
 		// Create the purchase
-		await createPurchaseInDatabase(connection, id, userId, dbTableObject.id, price, currency, completed)
+		await createPurchaseInDatabase(connection, id, userId, uuid, price, currency, completed)
+		dbPurchase = await getPurchaseFromDatabase(connection, id)
+	}
+
+	// Create all TableObjectPurchases of the Purchase
+	for (let objUuid of tableObjects) {
+		// Get the table object
+		let tableObject = await getTableObjectFromDatabase(connection, objUuid)
+
+		// Create the TableObjectPurchase
+		await createTableObjectPurchaseInDatabase(connection, tableObject.id, dbPurchase.id)
 	}
 }
 
-async function createPurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed) {
+async function createPurchaseInDatabase(connection, id, userId, uuid, price, currency, completed) {
 	return new Promise(resolve => {
 		let currentDate = new Date()
-		connection.query("INSERT INTO purchases (id, user_id, table_object_id, price, currency, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [id, userId, tableObjectId, price, currency, completed, currentDate, currentDate], () => {
+		connection.query("INSERT INTO purchases (id, user_id, uuid, price, currency, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [id, userId, uuid, price, currency, completed, currentDate, currentDate], () => {
 			resolve()
 		})
 	})
 }
 
-async function updatePurchaseInDatabase(connection, id, userId, tableObjectId, price, currency, completed) {
+async function updatePurchaseInDatabase(connection, id, userId, uuid, price, currency, completed) {
 	return new Promise(resolve => {
-		connection.query("UPDATE purchases SET user_id = ?, table_object_id = ?, price = ?, currency = ?, completed = ? WHERE id = ?", [userId, tableObjectId, price, currency, completed, id], () => {
+		connection.query("UPDATE purchases SET user_id = ?, uuid = ?, price = ?, currency = ?, completed = ? WHERE id = ?", [userId, uuid, price, currency, completed, id], () => {
 			resolve()
 		})
 	})
@@ -538,7 +547,7 @@ async function getPurchaseFromDatabase(connection, id) {
 				resolve({
 					id: dbPurchase.id,
 					userId: dbPurchase.user_id,
-					tableObjectId: dbPurchase.table_object_id,
+					uuid: dbPurchase.uuid,
 					paymentIntentId: dbPurchase.payment_intent_id,
 					providerName: dbPurchase.provider_name,
 					providerImage: dbPurchase.provider_image,
@@ -551,6 +560,24 @@ async function getPurchaseFromDatabase(connection, id) {
 					updatedAt: dbPurchase.updated_at
 				})
 			}
+		})
+	})
+}
+//#endregion
+
+//#region TableObjectPurchase database functions
+async function createTableObjectPurchaseInDatabase(connection, tableObjectId, purchaseId) {
+	return new Promise(resolve => {
+		connection.query("INSERT INTO table_object_purchases (table_object_id, purchase_id, created_at) VALUES (?, ?, ?)", [tableObjectId, purchaseId, new Date()], () => {
+			resolve()
+		})
+	})
+}
+
+async function deleteTableObjectPurchasesInDatabase(connection, purchaseId) {
+	return new Promise(resolve => {
+		connection.query("DELETE FROM table_object_purchases WHERE purchase_id = ?", [purchaseId], () => {
+			resolve()
 		})
 	})
 }
