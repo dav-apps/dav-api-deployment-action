@@ -281,7 +281,7 @@ async function scanPath(parent, options) {
 				// Inject the test data into the database
 				if (data.tableObjects) {
 					for (let tableObject of data.tableObjects) {
-						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties)
+						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties, tableObject.price)
 					}
 				}
 
@@ -310,7 +310,7 @@ async function scanPath(parent, options) {
 }
 
 //#region TableObject database functions
-async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties) {
+async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties, price) {
 	// Try to get the table object
 	let dbTableObject = await getTableObjectFromDatabase(connection, uuid)
 
@@ -349,7 +349,20 @@ async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uui
 
 			await createPropertyInDatabase(connection, dbTableObject.id, key, value)
 		}
+
+		if (price != null) {
+			// Create the TableObjectPrice
+			await createTableObjectPriceInDatabase(connection, dbTableObject.id, price.price, price.currency)
+		}
 	}
+}
+
+async function createTableObjectPriceInDatabase(connection, tableObjectId, price, currency) {
+	return new Promise(resolve => {
+		connection.query("INSERT INTO table_object_prices (table_object_id, price, currency) VALUES (?, ?, ?)", [tableObjectId, price, currency], () => {
+			resolve()
+		})
+	})
 }
 
 async function createTableObjectInDatabase(connection, uuid, userId, tableId, file) {
