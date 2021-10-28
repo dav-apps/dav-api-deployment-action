@@ -44,6 +44,9 @@ export async function startDeployment(options) {
 		}
 	}
 
+	// Compile the api
+	await compileApi(options)
+
 	if (deleteRepo) {
 		// Delete the cloned repository
 		fs.rmdirSync(requestedDir, { recursive: true })
@@ -245,12 +248,28 @@ async function scanPath(parent, options) {
 
 				connection.end()
 			}
+		}
+	}
+}
 
-			// Run all tests
-			exec(`mocha ${path.resolve(parent, json.source)}/**/*.spec.js --timeout 20000 --recursive`, (err, stdout, stderr) => {
-				console.log(stdout)
-				console.log(stderr)
-			})
+async function compileApi(options) {
+	try {
+		await axios({
+			url: `${options.baseUrl}/api/${options.apiId}/compile`,
+			method: 'put',
+			headers: {
+				Authorization: options.auth,
+				'Content-Type': 'application/json'
+			},
+			data: {
+				slot: options.branch
+			}
+		})
+	} catch (error) {
+		if (error.response) {
+			console.log(error.response.data.errors)
+		} else {
+			console.log(error)
 		}
 	}
 }
