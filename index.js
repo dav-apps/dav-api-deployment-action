@@ -2,11 +2,12 @@ import core from '@actions/core'
 import github from '@actions/github'
 import { startDeployment } from './deploy.js'
 
-async function run(){
-	try{
-		const baseUrl = core.getInput('base-url', {required: true})
-		const apiId = core.getInput('api-id', {required: true})
-		const auth = core.getInput('auth', {required: true})
+async function run() {
+	try {
+		const baseUrl = core.getInput('base-url', { required: true })
+		const apiId = core.getInput('api-id', { required: true })
+		const auth = core.getInput('auth', { required: true })
+		const branch = core.getInput('branch', { required: true })
 
 		startDeployment({
 			production: true,
@@ -15,9 +16,10 @@ async function run(){
 			githubRepo: github.context.repo.repo,
 			baseUrl,
 			apiId,
-			auth
+			auth,
+			branch
 		})
-	}catch(error){
+	} catch (error) {
 		core.setFailed(error.message)
 	}
 }
