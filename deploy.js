@@ -89,7 +89,7 @@ async function scanPath(parent, options) {
 
 			// Create or update the endpoint on the server
 			try {
-				await axios.default({
+				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/endpoint`,
 					method: 'put',
 					headers: {
@@ -111,7 +111,7 @@ async function scanPath(parent, options) {
 
 			// Create or update the function on the server
 			try {
-				await axios.default({
+				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/function`,
 					method: 'put',
 					headers: {
@@ -146,7 +146,7 @@ async function scanPath(parent, options) {
 
 					if (commands) {
 						try {
-							await axios.default({
+							await axios({
 								url: `${options.baseUrl}/api/${options.apiId}/function`,
 								method: 'put',
 								headers: {
@@ -172,7 +172,7 @@ async function scanPath(parent, options) {
 		} else if (json.type == "errors") {
 			// Create or update the errors on the server
 			try {
-				await axios.default({
+				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/errors`,
 					method: 'put',
 					headers: {
@@ -193,7 +193,7 @@ async function scanPath(parent, options) {
 		} else if (json.type == "env") {
 			// Create or update the env vars on the server
 			try {
-				await axios.default({
+				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/env_vars`,
 					method: 'put',
 					headers: {
