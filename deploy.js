@@ -12,57 +12,57 @@ var production = false
 
 export async function startDeployment(options) {
 	// Clone the repository
-	var directoryName = "repository";
-	var requestedDir;
-	var deleteRepo = false;
-	production = options.production == true;
+	var directoryName = "repository"
+	var requestedDir
+	var deleteRepo = false
+	production = options.production == true
 
 	if (options.githubUser && options.githubRepo) {
 		var clonePromise = new Promise((resolve) => {
 			clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
-				resolve(error);
-			});
-		});
+				resolve(error)
+			})
+		})
 
-		let error = await clonePromise;
-		if (error) throw error;
+		let error = await clonePromise
+		if (error) throw error
 
 		requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName)
-		deleteRepo = true;
+		deleteRepo = true
 	} else {
 		requestedDir = path.resolve(__dirname, options.project)
 	}
 
-	var dirs = fs.readdirSync(requestedDir);
+	var dirs = fs.readdirSync(requestedDir)
 
 	for (let dir of dirs) {
-		if (dir[0] == '.') continue;
-		let fullPath = path.resolve(requestedDir, dir);
+		if (dir[0] == '.') continue
+		let fullPath = path.resolve(requestedDir, dir)
 
 		if (fs.statSync(fullPath).isDirectory()) {
-			await scanPath(fullPath, options);
+			await scanPath(fullPath, options)
 		}
 	}
 
 	if (deleteRepo) {
 		// Delete the cloned repository
-		fs.rmdirSync(requestedDir, { recursive: true });
+		fs.rmdirSync(requestedDir, { recursive: true })
 	}
 }
 
 async function scanPath(parent, options) {
-	var dirs = fs.readdirSync(parent);
-	var files = [];
+	var dirs = fs.readdirSync(parent)
+	var files = []
 
 	for (let dir of dirs) {
-		if (dir[0] == '.') continue;
+		if (dir[0] == '.') continue
 
-		var fullPath = path.resolve(parent, dir);
+		var fullPath = path.resolve(parent, dir)
 		if (fs.statSync(fullPath).isDirectory()) {
-			await scanPath(fullPath, options);
+			await scanPath(fullPath, options)
 		} else {
 			// Add the file to the files array
-			files.push(dir);
+			files.push(dir)
 		}
 	}
 
@@ -73,7 +73,7 @@ async function scanPath(parent, options) {
 		var json = JSON.parse(fs.readFileSync(path.resolve(parent, file)))
 
 		if (json.type == "endpoint") {
-			if (!json.path || !json.method || !json.source) continue;
+			if (!json.path || !json.method || !json.source) continue
 			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' })
 
 			var body = {
@@ -133,7 +133,7 @@ async function scanPath(parent, options) {
 			}
 		} else if (json.type == "functions") {
 			// Create or update the functions on the server
-			var functions = json.functions;
+			var functions = json.functions
 
 			if (functions) {
 				for (let func of functions) {

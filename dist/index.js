@@ -28243,57 +28243,57 @@ var production = false
 
 async function startDeployment(options) {
 	// Clone the repository
-	var directoryName = "repository";
-	var requestedDir;
-	var deleteRepo = false;
-	production = options.production == true;
+	var directoryName = "repository"
+	var requestedDir
+	var deleteRepo = false
+	production = options.production == true
 
 	if (options.githubUser && options.githubRepo) {
 		var clonePromise = new Promise((resolve) => {
 			git_clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
-				resolve(error);
-			});
-		});
+				resolve(error)
+			})
+		})
 
-		let error = await clonePromise;
-		if (error) throw error;
+		let error = await clonePromise
+		if (error) throw error
 
 		requestedDir = options.directory ? external_path_.resolve(options.directory, directoryName) : external_path_.resolve(deploy_dirname, directoryName)
-		deleteRepo = true;
+		deleteRepo = true
 	} else {
 		requestedDir = external_path_.resolve(deploy_dirname, options.project)
 	}
 
-	var dirs = external_fs_.readdirSync(requestedDir);
+	var dirs = external_fs_.readdirSync(requestedDir)
 
 	for (let dir of dirs) {
-		if (dir[0] == '.') continue;
-		let fullPath = external_path_.resolve(requestedDir, dir);
+		if (dir[0] == '.') continue
+		let fullPath = external_path_.resolve(requestedDir, dir)
 
 		if (external_fs_.statSync(fullPath).isDirectory()) {
-			await scanPath(fullPath, options);
+			await scanPath(fullPath, options)
 		}
 	}
 
 	if (deleteRepo) {
 		// Delete the cloned repository
-		external_fs_.rmdirSync(requestedDir, { recursive: true });
+		external_fs_.rmdirSync(requestedDir, { recursive: true })
 	}
 }
 
 async function scanPath(parent, options) {
-	var dirs = external_fs_.readdirSync(parent);
-	var files = [];
+	var dirs = external_fs_.readdirSync(parent)
+	var files = []
 
 	for (let dir of dirs) {
-		if (dir[0] == '.') continue;
+		if (dir[0] == '.') continue
 
-		var fullPath = external_path_.resolve(parent, dir);
+		var fullPath = external_path_.resolve(parent, dir)
 		if (external_fs_.statSync(fullPath).isDirectory()) {
-			await scanPath(fullPath, options);
+			await scanPath(fullPath, options)
 		} else {
 			// Add the file to the files array
-			files.push(dir);
+			files.push(dir)
 		}
 	}
 
@@ -28304,7 +28304,7 @@ async function scanPath(parent, options) {
 		var json = JSON.parse(external_fs_.readFileSync(external_path_.resolve(parent, file)))
 
 		if (json.type == "endpoint") {
-			if (!json.path || !json.method || !json.source) continue;
+			if (!json.path || !json.method || !json.source) continue
 			let commands = external_fs_.readFileSync(external_path_.resolve(parent, json.source), { encoding: 'utf8' })
 
 			var body = {
@@ -28364,7 +28364,7 @@ async function scanPath(parent, options) {
 			}
 		} else if (json.type == "functions") {
 			// Create or update the functions on the server
-			var functions = json.functions;
+			var functions = json.functions
 
 			if (functions) {
 				for (let func of functions) {
