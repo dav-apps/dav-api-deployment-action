@@ -19,7 +19,7 @@
 		"mysql": "^2.18.1"
 	},
 	"devDependencies": {
-		"@vercel/ncc": "^0.31.1",
+		"@vercel/ncc": "^0.25.1",
 		"dotenv": "^10.0.0"
 	}
 }
