@@ -93,7 +93,7 @@ async function scanPath(parent, options) {
 			// Create or update the endpoint on the server
 			try {
 				await axios({
-					url: `${options.baseUrl}/api/${options.apiId}/endpoint`,
+					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/endpoint`,
 					method: 'put',
 					headers: {
 						Authorization: options.auth,
@@ -115,7 +115,7 @@ async function scanPath(parent, options) {
 			// Create or update the function on the server
 			try {
 				await axios({
-					url: `${options.baseUrl}/api/${options.apiId}/function`,
+					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/function`,
 					method: 'put',
 					headers: {
 						Authorization: options.auth,
@@ -150,7 +150,7 @@ async function scanPath(parent, options) {
 					if (commands) {
 						try {
 							await axios({
-								url: `${options.baseUrl}/api/${options.apiId}/function`,
+								url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/function`,
 								method: 'put',
 								headers: {
 									Authorization: options.auth,
@@ -176,7 +176,7 @@ async function scanPath(parent, options) {
 			// Create or update the errors on the server
 			try {
 				await axios({
-					url: `${options.baseUrl}/api/${options.apiId}/errors`,
+					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/errors`,
 					method: 'put',
 					headers: {
 						Authorization: options.auth,
@@ -197,7 +197,7 @@ async function scanPath(parent, options) {
 			// Create or update the env vars on the server
 			try {
 				await axios({
-					url: `${options.baseUrl}/api/${options.apiId}/env_vars`,
+					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/env_vars`,
 					method: 'put',
 					headers: {
 						Authorization: options.auth,
@@ -255,7 +255,7 @@ async function scanPath(parent, options) {
 async function compileApi(options) {
 	try {
 		await axios({
-			url: `${options.baseUrl}/api/${options.apiId}/compile`,
+			url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/compile`,
 			method: 'put',
 			headers: {
 				Authorization: options.auth,
