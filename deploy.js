@@ -4,8 +4,6 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 import fs from 'fs'
 import axios from 'axios'
 import clone from 'git-clone'
-import child_process from 'child_process'
-const exec = child_process.exec
 import mysql from 'mysql'
 
 var production = false
@@ -19,7 +17,7 @@ export async function startDeployment(options) {
 
 	if (options.githubUser && options.githubRepo) {
 		var clonePromise = new Promise((resolve) => {
-			clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
+			clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, { checkout: options.branch }, (error) => {
 				resolve(error)
 			})
 		})

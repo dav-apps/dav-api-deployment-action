@@ -23,8 +23,6 @@ var external_fs_ = __webpack_require__(5747);
 var axios = __webpack_require__(6545);
 // EXTERNAL MODULE: ./node_modules/git-clone/index.js
 var git_clone = __webpack_require__(701);
-// EXTERNAL MODULE: external "child_process"
-var external_child_process_ = __webpack_require__(3129);
 // EXTERNAL MODULE: ./node_modules/mysql/index.js
 var mysql = __webpack_require__(3667);
 // CONCATENATED MODULE: ./deploy.js
@@ -34,8 +32,6 @@ const deploy_dirname = external_path_.dirname(external_url_.fileURLToPath("file:
 
 
 
-
-const exec = external_child_process_.exec
 
 
 var production = false
@@ -49,7 +45,7 @@ async function startDeployment(options) {
 
 	if (options.githubUser && options.githubRepo) {
 		var clonePromise = new Promise((resolve) => {
-			git_clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, {}, (error) => {
+			git_clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, { checkout: options.branch }, (error) => {
 				resolve(error)
 			})
 		})
