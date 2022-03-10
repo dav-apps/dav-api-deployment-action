@@ -28495,7 +28495,7 @@ async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uui
 
 	if (dbTableObject) {
 		// Update each property
-		for (let key in properties) {
+		for (let key of Object.keys(properties)) {
 			let value = properties[key]
 
 			// Check if the property exists in the database
@@ -28522,7 +28522,7 @@ async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uui
 		dbTableObject = await getTableObjectFromDatabase(connection, uuid)
 
 		// Create the properties
-		for (let key in properties) {
+		for (let key of Object.keys(properties)) {
 			let value = properties[key]
 			if (value.length == 0) continue
 
