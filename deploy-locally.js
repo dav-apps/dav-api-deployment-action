@@ -1,5 +1,5 @@
-import { startDeployment } from './deploy.js'
-import dotenv from 'dotenv'
+import { startDeployment } from "./deploy.js"
+import dotenv from "dotenv"
 dotenv.config()
 
 startDeployment({

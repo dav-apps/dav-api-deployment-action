@@ -1,13 +1,13 @@
-import core from '@actions/core'
-import github from '@actions/github'
-import { startDeployment } from './deploy.js'
+import core from "@actions/core"
+import github from "@actions/github"
+import { startDeployment } from "./deploy.js"
 
 async function run() {
 	try {
-		const baseUrl = core.getInput('base-url', { required: true })
-		const apiId = core.getInput('api-id', { required: true })
-		const auth = core.getInput('auth', { required: true })
-		const branch = core.getInput('branch', { required: true })
+		const baseUrl = core.getInput("base-url", { required: true })
+		const apiId = core.getInput("api-id", { required: true })
+		const auth = core.getInput("auth", { required: true })
+		const branch = core.getInput("branch", { required: true })
 
 		startDeployment({
 			production: true,
