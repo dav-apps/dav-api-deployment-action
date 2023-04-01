@@ -1,10 +1,10 @@
-import path from 'path'
-import url from 'url'
+import path from "path"
+import url from "url"
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-import fs from 'fs'
-import axios from 'axios'
-import clone from 'git-clone'
-import mysql from 'mysql'
+import fs from "fs"
+import axios from "axios"
+import clone from "git-clone"
+import mysql from "mysql"
 
 var production = false
 
@@ -16,16 +16,23 @@ export async function startDeployment(options) {
 	production = options.production == true
 
 	if (options.githubUser && options.githubRepo) {
-		var clonePromise = new Promise((resolve) => {
-			clone(`https://github.com/${options.githubUser}/${options.githubRepo}`, directoryName, { checkout: options.branch }, (error) => {
-				resolve(error)
-			})
+		var clonePromise = new Promise(resolve => {
+			clone(
+				`https://github.com/${options.githubUser}/${options.githubRepo}`,
+				directoryName,
+				{ checkout: options.branch },
+				error => {
+					resolve(error)
+				}
+			)
 		})
 
 		let error = await clonePromise
 		if (error) throw error
 
-		requestedDir = options.directory ? path.resolve(options.directory, directoryName) : path.resolve(__dirname, directoryName)
+		requestedDir = options.directory
+			? path.resolve(options.directory, directoryName)
+			: path.resolve(__dirname, directoryName)
 		deleteRepo = true
 	} else {
 		requestedDir = path.resolve(__dirname, options.project)
@@ -34,7 +41,7 @@ export async function startDeployment(options) {
 	var dirs = fs.readdirSync(requestedDir)
 
 	for (let dir of dirs) {
-		if (dir[0] == '.') continue
+		if (dir[0] == ".") continue
 		let fullPath = path.resolve(requestedDir, dir)
 
 		if (fs.statSync(fullPath).isDirectory()) {
@@ -56,7 +63,7 @@ async function scanPath(parent, options) {
 	var files = []
 
 	for (let dir of dirs) {
-		if (dir[0] == '.') continue
+		if (dir[0] == ".") continue
 
 		var fullPath = path.resolve(parent, dir)
 		if (fs.statSync(fullPath).isDirectory()) {
@@ -68,14 +75,16 @@ async function scanPath(parent, options) {
 	}
 
 	for (let file of files) {
-		if (file.split('.').pop() != "json") continue
+		if (file.split(".").pop() != "json") continue
 
 		// Read the content of the json file
 		var json = JSON.parse(fs.readFileSync(path.resolve(parent, file)))
 
 		if (json.type == "endpoint") {
 			if (!json.path || !json.method || !json.source) continue
-			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' })
+			let commands = fs.readFileSync(path.resolve(parent, json.source), {
+				encoding: "utf8"
+			})
 
 			var body = {
 				path: json.path,
@@ -92,10 +101,10 @@ async function scanPath(parent, options) {
 			try {
 				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/endpoint`,
-					method: 'put',
+					method: "put",
 					headers: {
 						Authorization: options.auth,
-						'Content-Type': 'application/json'
+						"Content-Type": "application/json"
 					},
 					data: body
 				})
@@ -108,20 +117,22 @@ async function scanPath(parent, options) {
 			}
 		} else if (json.type == "function") {
 			if (!json.name || !json.params || !json.source) continue
-			let commands = fs.readFileSync(path.resolve(parent, json.source), { encoding: 'utf8' })
+			let commands = fs.readFileSync(path.resolve(parent, json.source), {
+				encoding: "utf8"
+			})
 
 			// Create or update the function on the server
 			try {
 				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/function`,
-					method: 'put',
+					method: "put",
 					headers: {
 						Authorization: options.auth,
-						'Content-Type': 'application/json'
+						"Content-Type": "application/json"
 					},
 					data: {
 						name: json.name,
-						params: json.params.join(','),
+						params: json.params.join(","),
 						commands
 					}
 				})
@@ -143,20 +154,22 @@ async function scanPath(parent, options) {
 					let source = func.source
 
 					// Find the source file
-					let commands = fs.readFileSync(path.resolve(parent, source), { encoding: 'utf8' })
+					let commands = fs.readFileSync(path.resolve(parent, source), {
+						encoding: "utf8"
+					})
 
 					if (commands) {
 						try {
 							await axios({
 								url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/function`,
-								method: 'put',
+								method: "put",
 								headers: {
 									Authorization: options.auth,
-									'Content-Type': 'application/json'
+									"Content-Type": "application/json"
 								},
 								data: {
 									name,
-									params: params.join(','),
+									params: params.join(","),
 									commands
 								}
 							})
@@ -175,10 +188,10 @@ async function scanPath(parent, options) {
 			try {
 				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/errors`,
-					method: 'put',
+					method: "put",
 					headers: {
 						Authorization: options.auth,
-						'Content-Type': 'application/json'
+						"Content-Type": "application/json"
 					},
 					data: {
 						errors: json.errors
@@ -196,10 +209,10 @@ async function scanPath(parent, options) {
 			try {
 				await axios({
 					url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/env_vars`,
-					method: 'put',
+					method: "put",
 					headers: {
 						Authorization: options.auth,
-						'Content-Type': 'application/json'
+						"Content-Type": "application/json"
 					},
 					data: {
 						env_vars: production ? json.production : json.development
@@ -228,19 +241,41 @@ async function scanPath(parent, options) {
 				// Inject the test data into the database
 				if (data.tableObjects) {
 					for (let tableObject of data.tableObjects) {
-						await createOrUpdateTableObjectWithPropertiesInDatabase(connection, tableObject.uuid, tableObject.userId, tableObject.tableId, tableObject.file, tableObject.properties, tableObject.price)
+						await createOrUpdateTableObjectWithPropertiesInDatabase(
+							connection,
+							tableObject.uuid,
+							tableObject.userId,
+							tableObject.tableId,
+							tableObject.file,
+							tableObject.properties,
+							tableObject.price
+						)
 					}
 				}
 
 				if (data.collections) {
 					for (let collection of data.collections) {
-						await createOrUpdateCollectionWithTableObjectsInDatabase(connection, collection.tableId, collection.name, collection.tableObjects)
+						await createOrUpdateCollectionWithTableObjectsInDatabase(
+							connection,
+							collection.tableId,
+							collection.name,
+							collection.tableObjects
+						)
 					}
 				}
 
 				if (data.purchases) {
 					for (let purchase of data.purchases) {
-						await createOrUpdatePurchaseWithTableObjectsInDatabase(connection, purchase.id, purchase.userId, purchase.uuid, purchase.price, purchase.currency, purchase.completed, purchase.tableObjects)
+						await createOrUpdatePurchaseWithTableObjectsInDatabase(
+							connection,
+							purchase.id,
+							purchase.userId,
+							purchase.uuid,
+							purchase.price,
+							purchase.currency,
+							purchase.completed,
+							purchase.tableObjects
+						)
 					}
 				}
 
@@ -254,10 +289,10 @@ async function compileApi(options) {
 	try {
 		await axios({
 			url: `${options.baseUrl}/api/${options.apiId}/${options.branch}/compile`,
-			method: 'put',
+			method: "put",
 			headers: {
 				Authorization: options.auth,
-				'Content-Type': 'application/json'
+				"Content-Type": "application/json"
 			},
 			data: {
 				slot: options.branch
@@ -273,7 +308,15 @@ async function compileApi(options) {
 }
 
 //#region TableObject database functions
-async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uuid, userId, tableId, file, properties, price) {
+async function createOrUpdateTableObjectWithPropertiesInDatabase(
+	connection,
+	uuid,
+	userId,
+	tableId,
+	file,
+	properties,
+	price
+) {
 	// Try to get the table object
 	let dbTableObject = await getTableObjectFromDatabase(connection, uuid)
 
@@ -283,7 +326,11 @@ async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uui
 			let value = properties[key]
 
 			// Check if the property exists in the database
-			let dbProperty = await getPropertyFromDatabase(connection, dbTableObject.id, key)
+			let dbProperty = await getPropertyFromDatabase(
+				connection,
+				dbTableObject.id,
+				key
+			)
 
 			if (dbProperty) {
 				if (value.length == 0) {
@@ -297,7 +344,12 @@ async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uui
 				if (value.length == 0) continue
 
 				// Create the property
-				await createPropertyInDatabase(connection, dbTableObject.id, key, value)
+				await createPropertyInDatabase(
+					connection,
+					dbTableObject.id,
+					key,
+					value
+				)
 			}
 		}
 	} else {
@@ -310,99 +362,162 @@ async function createOrUpdateTableObjectWithPropertiesInDatabase(connection, uui
 			let value = properties[key]
 			if (value.length == 0) continue
 
-			await createPropertyInDatabase(connection, dbTableObject.id, key, value)
+			await createPropertyInDatabase(
+				connection,
+				dbTableObject.id,
+				key,
+				value
+			)
 		}
 
 		if (price != null) {
 			// Create the TableObjectPrice
-			await createTableObjectPriceInDatabase(connection, dbTableObject.id, price.price, price.currency)
+			await createTableObjectPriceInDatabase(
+				connection,
+				dbTableObject.id,
+				price.price,
+				price.currency
+			)
 		}
 	}
 }
 
-async function createTableObjectPriceInDatabase(connection, tableObjectId, price, currency) {
+async function createTableObjectPriceInDatabase(
+	connection,
+	tableObjectId,
+	price,
+	currency
+) {
 	return new Promise(resolve => {
-		connection.query("INSERT INTO table_object_prices (table_object_id, price, currency) VALUES (?, ?, ?)", [tableObjectId, price, currency], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO table_object_prices (table_object_id, price, currency) VALUES (?, ?, ?)",
+			[tableObjectId, price, currency],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
-async function createTableObjectInDatabase(connection, uuid, userId, tableId, file) {
+async function createTableObjectInDatabase(
+	connection,
+	uuid,
+	userId,
+	tableId,
+	file
+) {
 	return new Promise(resolve => {
 		let currentDate = new Date()
-		connection.query("INSERT INTO table_objects (uuid, user_id, table_id, file, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", [uuid, userId, tableId, file, currentDate, currentDate], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO table_objects (uuid, user_id, table_id, file, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+			[uuid, userId, tableId, file, currentDate, currentDate],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
 async function getTableObjectFromDatabase(connection, uuid) {
 	return new Promise(resolve => {
-		connection.query("SELECT * FROM table_objects WHERE uuid = ?", [uuid], (tableObjectQueryError, tableObjectQueryResults, tableObjectQueryFields) => {
-			if (tableObjectQueryResults.length == 0) {
-				resolve(null)
-			} else {
-				let dbTableObject = tableObjectQueryResults[0]
-				resolve({
-					id: dbTableObject.id,
-					userId: dbTableObject.user_id,
-					tableId: dbTableObject.table_id,
-					uuid: dbTableObject.uuid,
-					file: dbTableObject.file == 1
-				})
+		connection.query(
+			"SELECT * FROM table_objects WHERE uuid = ?",
+			[uuid],
+			(
+				tableObjectQueryError,
+				tableObjectQueryResults,
+				tableObjectQueryFields
+			) => {
+				if (tableObjectQueryResults.length == 0) {
+					resolve(null)
+				} else {
+					let dbTableObject = tableObjectQueryResults[0]
+					resolve({
+						id: dbTableObject.id,
+						userId: dbTableObject.user_id,
+						tableId: dbTableObject.table_id,
+						uuid: dbTableObject.uuid,
+						file: dbTableObject.file == 1
+					})
+				}
 			}
-		})
+		)
 	})
 }
 //#endregion
 
 //#region Property database functions
-async function createPropertyInDatabase(connection, tableObjectId, name, value) {
+async function createPropertyInDatabase(
+	connection,
+	tableObjectId,
+	name,
+	value
+) {
 	return new Promise(resolve => {
-		connection.query("INSERT INTO table_object_properties (table_object_id, name, value) VALUES (?, ?, ?)", [tableObjectId, name, value], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO table_object_properties (table_object_id, name, value) VALUES (?, ?, ?)",
+			[tableObjectId, name, value],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
 async function getPropertyFromDatabase(connection, tableObjectId, name) {
 	return new Promise(resolve => {
-		connection.query("SELECT * FROM table_object_properties WHERE table_object_id = ? AND name = ?", [tableObjectId, name], (propertyQueryError, propertyQueryResults, propertyQueryFields) => {
-			if (propertyQueryResults.length == 0) {
-				resolve(null)
-			} else {
-				let dbProperty = propertyQueryResults[0]
-				resolve({
-					id: dbProperty.id,
-					tableObjectId: dbProperty.table_object_id,
-					name: dbProperty.name,
-					value: dbProperty.value
-				})
+		connection.query(
+			"SELECT * FROM table_object_properties WHERE table_object_id = ? AND name = ?",
+			[tableObjectId, name],
+			(propertyQueryError, propertyQueryResults, propertyQueryFields) => {
+				if (propertyQueryResults.length == 0) {
+					resolve(null)
+				} else {
+					let dbProperty = propertyQueryResults[0]
+					resolve({
+						id: dbProperty.id,
+						tableObjectId: dbProperty.table_object_id,
+						name: dbProperty.name,
+						value: dbProperty.value
+					})
+				}
 			}
-		})
+		)
 	})
 }
 
 async function updatePropertyInDatabase(connection, id, value) {
 	return new Promise(resolve => {
-		connection.query("UPDATE table_object_properties SET value = ? WHERE id = ?", [value, id], () => {
-			resolve()
-		})
+		connection.query(
+			"UPDATE table_object_properties SET value = ? WHERE id = ?",
+			[value, id],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
 async function deletePropertyInDatabase(connection, id) {
 	return new Promise(resolve => {
-		connection.query("DELETE FROM table_object_properties WHERE id = ?", [id], (error) => {
-			resolve()
-		})
+		connection.query(
+			"DELETE FROM table_object_properties WHERE id = ?",
+			[id],
+			error => {
+				resolve()
+			}
+		)
 	})
 }
 //#endregion
 
 //#region Collection database functions
-async function createOrUpdateCollectionWithTableObjectsInDatabase(connection, tableId, name, tableObjects) {
+async function createOrUpdateCollectionWithTableObjectsInDatabase(
+	connection,
+	tableId,
+	name,
+	tableObjects
+) {
 	let dbCollection = await getCollectionFromDatabase(connection, tableId, name)
 
 	if (dbCollection) {
@@ -420,69 +535,125 @@ async function createOrUpdateCollectionWithTableObjectsInDatabase(connection, ta
 		let tableObject = await getTableObjectFromDatabase(connection, objUuid)
 
 		// Create the TableObjectCollection
-		await createTableObjectCollectionInDatabase(connection, tableObject.id, dbCollection.id)
+		await createTableObjectCollectionInDatabase(
+			connection,
+			tableObject.id,
+			dbCollection.id
+		)
 	}
 }
 
 async function createCollectionInDatabase(connection, tableId, name) {
 	return new Promise(resolve => {
 		let currentDate = new Date()
-		connection.query("INSERT INTO collections (table_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)", [tableId, name, currentDate, currentDate], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO collections (table_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+			[tableId, name, currentDate, currentDate],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
 async function getCollectionFromDatabase(connection, tableId, name) {
 	return new Promise(resolve => {
-		connection.query("SELECT * FROM collections WHERE table_id = ? AND name = ?", [tableId, name], (collectionQueryError, collectionQueryResults, connectionQueryFields) => {
-			if (collectionQueryResults.length == 0) {
-				resolve(null)
-			} else {
-				let dbCollection = collectionQueryResults[0]
-				resolve({
-					id: dbCollection.id,
-					tableId: dbCollection.table_id,
-					name: dbCollection.name
-				})
+		connection.query(
+			"SELECT * FROM collections WHERE table_id = ? AND name = ?",
+			[tableId, name],
+			(
+				collectionQueryError,
+				collectionQueryResults,
+				connectionQueryFields
+			) => {
+				if (collectionQueryResults.length == 0) {
+					resolve(null)
+				} else {
+					let dbCollection = collectionQueryResults[0]
+					resolve({
+						id: dbCollection.id,
+						tableId: dbCollection.table_id,
+						name: dbCollection.name
+					})
+				}
 			}
-		})
+		)
 	})
 }
 //#endregion
 
 //#region TableObjectCollection database functions
-async function createTableObjectCollectionInDatabase(connection, tableObjectId, collectionId) {
+async function createTableObjectCollectionInDatabase(
+	connection,
+	tableObjectId,
+	collectionId
+) {
 	return new Promise(resolve => {
-		connection.query("INSERT INTO table_object_collections (table_object_id, collection_id, created_at) VALUES (?, ?, ?)", [tableObjectId, collectionId, new Date()], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO table_object_collections (table_object_id, collection_id, created_at) VALUES (?, ?, ?)",
+			[tableObjectId, collectionId, new Date()],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
-async function deleteTableObjectCollectionsInDatabase(connection, collectionId) {
+async function deleteTableObjectCollectionsInDatabase(
+	connection,
+	collectionId
+) {
 	return new Promise(resolve => {
-		connection.query("DELETE FROM table_object_collections WHERE collection_id = ?", [collectionId], (error) => {
-			resolve()
-		})
+		connection.query(
+			"DELETE FROM table_object_collections WHERE collection_id = ?",
+			[collectionId],
+			error => {
+				resolve()
+			}
+		)
 	})
 }
 //#endregion
 
 //#region Purchase database functions
-async function createOrUpdatePurchaseWithTableObjectsInDatabase(connection, id, userId, uuid, price, currency, completed, tableObjects) {
+async function createOrUpdatePurchaseWithTableObjectsInDatabase(
+	connection,
+	id,
+	userId,
+	uuid,
+	price,
+	currency,
+	completed,
+	tableObjects
+) {
 	// Get the purchase from the database
 	let dbPurchase = await getPurchaseFromDatabase(connection, id)
 
 	if (dbPurchase) {
 		// Update the purchase
-		await updatePurchaseInDatabase(connection, id, userId, uuid, price, currency, completed)
+		await updatePurchaseInDatabase(
+			connection,
+			id,
+			userId,
+			uuid,
+			price,
+			currency,
+			completed
+		)
 
 		// Delete all TableObjectPurchases of the purchase
 		await deleteTableObjectPurchasesInDatabase(connection, dbPurchase.id)
 	} else {
 		// Create the purchase
-		await createPurchaseInDatabase(connection, id, userId, uuid, price, currency, completed)
+		await createPurchaseInDatabase(
+			connection,
+			id,
+			userId,
+			uuid,
+			price,
+			currency,
+			completed
+		)
 		dbPurchase = await getPurchaseFromDatabase(connection, id)
 	}
 
@@ -492,69 +663,122 @@ async function createOrUpdatePurchaseWithTableObjectsInDatabase(connection, id, 
 		let tableObject = await getTableObjectFromDatabase(connection, objUuid)
 
 		// Create the TableObjectPurchase
-		await createTableObjectPurchaseInDatabase(connection, tableObject.id, dbPurchase.id)
+		await createTableObjectPurchaseInDatabase(
+			connection,
+			tableObject.id,
+			dbPurchase.id
+		)
 	}
 }
 
-async function createPurchaseInDatabase(connection, id, userId, uuid, price, currency, completed) {
+async function createPurchaseInDatabase(
+	connection,
+	id,
+	userId,
+	uuid,
+	price,
+	currency,
+	completed
+) {
 	return new Promise(resolve => {
 		let currentDate = new Date()
-		connection.query("INSERT INTO purchases (id, user_id, uuid, price, currency, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [id, userId, uuid, price, currency, completed, currentDate, currentDate], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO purchases (id, user_id, uuid, price, currency, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			[
+				id,
+				userId,
+				uuid,
+				price,
+				currency,
+				completed,
+				currentDate,
+				currentDate
+			],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
-async function updatePurchaseInDatabase(connection, id, userId, uuid, price, currency, completed) {
+async function updatePurchaseInDatabase(
+	connection,
+	id,
+	userId,
+	uuid,
+	price,
+	currency,
+	completed
+) {
 	return new Promise(resolve => {
-		connection.query("UPDATE purchases SET user_id = ?, uuid = ?, price = ?, currency = ?, completed = ? WHERE id = ?", [userId, uuid, price, currency, completed, id], () => {
-			resolve()
-		})
+		connection.query(
+			"UPDATE purchases SET user_id = ?, uuid = ?, price = ?, currency = ?, completed = ? WHERE id = ?",
+			[userId, uuid, price, currency, completed, id],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
 async function getPurchaseFromDatabase(connection, id) {
 	return new Promise(resolve => {
-		connection.query("SELECT * FROM purchases WHERE id = ?", [id], (error, results, fields) => {
-			if (results.length == 0) {
-				resolve(null)
-			} else {
-				let dbPurchase = results[0]
-				resolve({
-					id: dbPurchase.id,
-					userId: dbPurchase.user_id,
-					uuid: dbPurchase.uuid,
-					paymentIntentId: dbPurchase.payment_intent_id,
-					providerName: dbPurchase.provider_name,
-					providerImage: dbPurchase.provider_image,
-					productName: dbPurchase.product_name,
-					productImage: dbPurchase.product_image,
-					price: dbPurchase.price,
-					currency: dbPurchase.currency,
-					completed: dbPurchase.completed,
-					createdAt: dbPurchase.created_at,
-					updatedAt: dbPurchase.updated_at
-				})
+		connection.query(
+			"SELECT * FROM purchases WHERE id = ?",
+			[id],
+			(error, results, fields) => {
+				if (results.length == 0) {
+					resolve(null)
+				} else {
+					let dbPurchase = results[0]
+					resolve({
+						id: dbPurchase.id,
+						userId: dbPurchase.user_id,
+						uuid: dbPurchase.uuid,
+						paymentIntentId: dbPurchase.payment_intent_id,
+						providerName: dbPurchase.provider_name,
+						providerImage: dbPurchase.provider_image,
+						productName: dbPurchase.product_name,
+						productImage: dbPurchase.product_image,
+						price: dbPurchase.price,
+						currency: dbPurchase.currency,
+						completed: dbPurchase.completed,
+						createdAt: dbPurchase.created_at,
+						updatedAt: dbPurchase.updated_at
+					})
+				}
 			}
-		})
+		)
 	})
 }
 //#endregion
 
 //#region TableObjectPurchase database functions
-async function createTableObjectPurchaseInDatabase(connection, tableObjectId, purchaseId) {
+async function createTableObjectPurchaseInDatabase(
+	connection,
+	tableObjectId,
+	purchaseId
+) {
 	return new Promise(resolve => {
-		connection.query("INSERT INTO table_object_purchases (table_object_id, purchase_id, created_at) VALUES (?, ?, ?)", [tableObjectId, purchaseId, new Date()], () => {
-			resolve()
-		})
+		connection.query(
+			"INSERT INTO table_object_purchases (table_object_id, purchase_id, created_at) VALUES (?, ?, ?)",
+			[tableObjectId, purchaseId, new Date()],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 
 async function deleteTableObjectPurchasesInDatabase(connection, purchaseId) {
 	return new Promise(resolve => {
-		connection.query("DELETE FROM table_object_purchases WHERE purchase_id = ?", [purchaseId], () => {
-			resolve()
-		})
+		connection.query(
+			"DELETE FROM table_object_purchases WHERE purchase_id = ?",
+			[purchaseId],
+			() => {
+				resolve()
+			}
+		)
 	})
 }
 //#endregion
